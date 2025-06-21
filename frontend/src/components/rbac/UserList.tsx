@@ -1,133 +1,131 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Paper,
   Typography,
+  Grid,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  IconButton,
+  Chip,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  Button,
-  IconButton,
-  TextField,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Chip,
   Tooltip,
   styled,
+  Avatar,
+  Alert,
+  CircularProgress,
 } from '@mui/material';
 import {
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
   Email as EmailIcon,
+  Person as PersonIcon,
 } from '@mui/icons-material';
-import { UserRole } from '../../types/rbac';
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
+  padding: theme.spacing(3),
   margin: theme.spacing(2),
-  padding: theme.spacing(2),
-  backgroundColor: 'rgba(255, 255, 255, 0.05)',
-  backdropFilter: 'blur(10px)',
-  border: '1px solid rgba(255, 255, 255, 0.1)',
+  backgroundColor: theme.palette.background.paper,
+  boxShadow: theme.shadows[3],
+  minHeight: '100vh',
 }));
 
 interface User {
   id: string;
   name: string;
   email: string;
-  role: UserRole;
-  department?: string;
-  grade?: string;
+  role: string;
   organization: string;
   status: 'active' | 'inactive';
+  department?: string;
+  grade?: string;
 }
 
-// Mock data
-const mockUsers: User[] = [
-  {
-    id: '1',
-    name: 'John Admin',
-    email: 'john@school.com',
-    role: 'school_admin',
-    organization: 'ABC School',
-    status: 'active',
-  },
-  {
-    id: '2',
-    name: 'Sarah Teacher',
-    email: 'sarah@school.com',
-    role: 'teacher',
-    grade: '10th',
-    organization: 'ABC School',
-    status: 'active',
-  },
-  {
-    id: '3',
-    name: 'Mike Corp',
-    email: 'mike@corp.com',
-    role: 'corporate_admin',
-    organization: 'XYZ Corp',
-    status: 'active',
-  },
-  {
-    id: '4',
-    name: 'Lisa HRBP',
-    email: 'lisa@corp.com',
-    role: 'hrbp',
-    department: 'HR',
-    organization: 'XYZ Corp',
-    status: 'active',
-  },
-];
-
 const UserList: React.FC = () => {
-  const [users, setUsers] = useState<User[]>(mockUsers);
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [filter, setFilter] = useState('');
 
+  // Form state for create/edit
+  const [formData, setFormData] = useState<Partial<User>>({
+    name: '',
+    email: '',
+    role: '',
+    organization: '',
+    status: 'active'
+  });
+
+  useEffect(() => {
+    // TODO: Replace with actual API call
+    // fetchUsers();
+    setLoading(false);
+  }, []);
+
   const handleAddUser = () => {
     setSelectedUser(null);
+    setFormData({
+      name: '',
+      email: '',
+      role: '',
+      organization: '',
+      status: 'active'
+    });
     setOpenDialog(true);
   };
 
   const handleEditUser = (user: User) => {
     setSelectedUser(user);
+    setFormData({
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      organization: user.organization,
+      status: user.status,
+      department: user.department,
+      grade: user.grade
+    });
     setOpenDialog(true);
   };
 
   const handleDeleteUser = (userId: string) => {
+    // TODO: Replace with actual API call
     setUsers(users.filter(user => user.id !== userId));
   };
 
   const handleSendInvite = (email: string) => {
+    // TODO: Replace with actual API call
     console.log('Sending invite to:', email);
   };
 
-  const handleSave = (userData: Partial<User>) => {
+  const handleSaveUser = () => {
+    // TODO: Replace with actual API call
     if (selectedUser) {
       setUsers(users.map(user => 
-        user.id === selectedUser.id ? { ...user, ...userData } : user
+        user.id === selectedUser.id ? { ...user, ...formData } : user
       ));
     } else {
       const newUser: User = {
         id: String(users.length + 1),
-        name: userData.name || '',
-        email: userData.email || '',
-        role: userData.role || 'student',
-        organization: userData.organization || '',
-        status: 'active',
-        ...(userData.department && { department: userData.department }),
-        ...(userData.grade && { grade: userData.grade }),
+        name: formData.name || '',
+        email: formData.email || '',
+        role: formData.role || '',
+        organization: formData.organization || '',
+        status: formData.status || 'active',
+        department: formData.department,
+        grade: formData.grade
       };
       setUsers([...users, newUser]);
     }
@@ -140,37 +138,65 @@ const UserList: React.FC = () => {
     user.role.toLowerCase().includes(filter.toLowerCase())
   );
 
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+        <CircularProgress />
+      </Box>
+    );
+  }
+
   return (
-    <StyledPaper elevation={3}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h5">User Management</Typography>
+    <StyledPaper>
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h4" component="h1" gutterBottom>
+          User Management
+        </Typography>
+        <Typography variant="body1" color="text.secondary">
+          Manage users and their roles across the platform
+        </Typography>
+      </Box>
+
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+          {error}
+        </Alert>
+      )}
+
+      <Box sx={{ mb: 4 }}>
+        <Grid container spacing={2} alignItems="center">
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              label="Search Users"
+              variant="outlined"
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              InputProps={{
+                startAdornment: <PersonIcon sx={{ mr: 1, color: 'action.active' }} />,
+              }}
+            />
+          </Grid>
+          <Grid item xs={12} md={6} sx={{ textAlign: 'right' }}>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
           onClick={handleAddUser}
         >
-          Add User
+              Add New User
         </Button>
+          </Grid>
+        </Grid>
       </Box>
 
-      <TextField
-        fullWidth
-        variant="outlined"
-        placeholder="Search users..."
-        value={filter}
-        onChange={(e) => setFilter(e.target.value)}
-        sx={{ mb: 2 }}
-      />
-
-      <TableContainer>
+      <TableContainer component={Paper}>
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>Name</TableCell>
+              <TableCell>User</TableCell>
               <TableCell>Email</TableCell>
               <TableCell>Role</TableCell>
               <TableCell>Organization</TableCell>
-              <TableCell>Department/Grade</TableCell>
               <TableCell>Status</TableCell>
               <TableCell>Actions</TableCell>
             </TableRow>
@@ -178,40 +204,60 @@ const UserList: React.FC = () => {
           <TableBody>
             {filteredUsers.map((user) => (
               <TableRow key={user.id}>
-                <TableCell>{user.name}</TableCell>
+                <TableCell>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>
+                      {user.name.charAt(0)}
+                    </Avatar>
+                    <Box>
+                      <Typography variant="subtitle1">{user.name}</Typography>
+                      {user.department && (
+                        <Typography variant="caption" color="text.secondary">
+                          {user.department}
+                        </Typography>
+                      )}
+                    </Box>
+                  </Box>
+                </TableCell>
                 <TableCell>{user.email}</TableCell>
                 <TableCell>
                   <Chip
                     label={user.role}
-                    color={user.role.includes('admin') ? 'primary' : 'default'}
                     size="small"
+                    color="primary"
+                    variant="outlined"
                   />
                 </TableCell>
                 <TableCell>{user.organization}</TableCell>
-                <TableCell>{user.department || user.grade || '-'}</TableCell>
                 <TableCell>
                   <Chip
                     label={user.status}
-                    color={user.status === 'active' ? 'success' : 'error'}
                     size="small"
+                    color={user.status === 'active' ? 'success' : 'default'}
                   />
                 </TableCell>
                 <TableCell>
-                  <Tooltip title="Edit">
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Tooltip title="Send Invite">
+                      <IconButton size="small" onClick={() => handleSendInvite(user.email)}>
+                        <EmailIcon />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Edit User">
                     <IconButton size="small" onClick={() => handleEditUser(user)}>
                       <EditIcon />
                     </IconButton>
                   </Tooltip>
-                  <Tooltip title="Delete">
-                    <IconButton size="small" onClick={() => handleDeleteUser(user.id)}>
+                    <Tooltip title="Delete User">
+                      <IconButton 
+                        size="small" 
+                        onClick={() => handleDeleteUser(user.id)}
+                        color="error"
+                      >
                       <DeleteIcon />
                     </IconButton>
                   </Tooltip>
-                  <Tooltip title="Send Invite">
-                    <IconButton size="small" onClick={() => handleSendInvite(user.email)}>
-                      <EmailIcon />
-                    </IconButton>
-                  </Tooltip>
+                  </Box>
                 </TableCell>
               </TableRow>
             ))}
@@ -219,99 +265,76 @@ const UserList: React.FC = () => {
         </Table>
       </TableContainer>
 
-      <UserDialog
-        open={openDialog}
-        user={selectedUser}
-        onClose={() => setOpenDialog(false)}
-        onSave={handleSave}
-      />
-    </StyledPaper>
-  );
-};
-
-interface UserDialogProps {
-  open: boolean;
-  user: User | null;
-  onClose: () => void;
-  onSave: (userData: Partial<User>) => void;
-}
-
-const UserDialog: React.FC<UserDialogProps> = ({ open, user, onClose, onSave }) => {
-  const [userData, setUserData] = useState<Partial<User>>(user || {});
-
-  React.useEffect(() => {
-    setUserData(user || {});
-  }, [user]);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSave(userData);
-  };
-
-  return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <form onSubmit={handleSubmit}>
-        <DialogTitle>{user ? 'Edit User' : 'Add User'}</DialogTitle>
+      {/* Create/Edit User Dialog */}
+      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="md" fullWidth>
+        <DialogTitle>
+          {selectedUser ? 'Edit User' : 'Add New User'}
+        </DialogTitle>
         <DialogContent>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12} md={6}>
             <TextField
+                fullWidth
               label="Name"
-              value={userData.name || ''}
-              onChange={(e) => setUserData({ ...userData, name: e.target.value })}
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               required
             />
+            </Grid>
+            <Grid item xs={12} md={6}>
             <TextField
+                fullWidth
               label="Email"
               type="email"
-              value={userData.email || ''}
-              onChange={(e) => setUserData({ ...userData, email: e.target.value })}
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               required
             />
-            <FormControl required>
-              <InputLabel>Role</InputLabel>
-              <Select
-                value={userData.role || ''}
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
                 label="Role"
-                onChange={(e) => setUserData({ ...userData, role: e.target.value as UserRole })}
-              >
-                <MenuItem value="school_admin">School Admin</MenuItem>
-                <MenuItem value="corporate_admin">Corporate Admin</MenuItem>
-                <MenuItem value="department_head">Department Head</MenuItem>
-                <MenuItem value="hrbp">HRBP</MenuItem>
-                <MenuItem value="teacher">Teacher</MenuItem>
-                <MenuItem value="parent">Parent</MenuItem>
-                <MenuItem value="student">Student</MenuItem>
-                <MenuItem value="employee">Employee</MenuItem>
-              </Select>
-            </FormControl>
+                value={formData.role}
+                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                required
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
             <TextField
+                fullWidth
               label="Organization"
-              value={userData.organization || ''}
-              onChange={(e) => setUserData({ ...userData, organization: e.target.value })}
+                value={formData.organization}
+                onChange={(e) => setFormData({ ...formData, organization: e.target.value })}
               required
             />
-            {(userData.role === 'department_head' || userData.role === 'hrbp' || userData.role === 'employee') && (
+            </Grid>
+            <Grid item xs={12} md={6}>
               <TextField
+                fullWidth
                 label="Department"
-                value={userData.department || ''}
-                onChange={(e) => setUserData({ ...userData, department: e.target.value })}
+                value={formData.department}
+                onChange={(e) => setFormData({ ...formData, department: e.target.value })}
               />
-            )}
-            {(userData.role === 'teacher' || userData.role === 'student') && (
+            </Grid>
+            <Grid item xs={12} md={6}>
               <TextField
+                fullWidth
                 label="Grade"
-                value={userData.grade || ''}
-                onChange={(e) => setUserData({ ...userData, grade: e.target.value })}
+                value={formData.grade}
+                onChange={(e) => setFormData({ ...formData, grade: e.target.value })}
               />
-            )}
-          </Box>
+            </Grid>
+          </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={onClose}>Cancel</Button>
-          <Button type="submit" variant="contained">Save</Button>
+          <Button onClick={() => setOpenDialog(false)}>Cancel</Button>
+          <Button onClick={handleSaveUser} variant="contained">
+            {selectedUser ? 'Update' : 'Create'}
+          </Button>
         </DialogActions>
-      </form>
     </Dialog>
+    </StyledPaper>
   );
 };
 

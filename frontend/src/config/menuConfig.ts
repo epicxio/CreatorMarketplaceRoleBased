@@ -96,6 +96,19 @@ export const defaultMenuItems: MenuItem[] = [
         }
       },
       {
+        id: 'user_types',
+        label: 'User Type',
+        path: '/user-types',
+        icon: 'ManageAccounts',
+        actions: {
+          view: true,
+          edit: true,
+          create: true,
+          delete: true,
+          assign: true
+        }
+      },
+      {
         id: 'permissions',
         label: 'Menu Permissions',
         path: '/permissions',

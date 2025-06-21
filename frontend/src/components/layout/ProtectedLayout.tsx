@@ -1,41 +1,18 @@
 import React, { useState } from 'react';
-import { Navigate, Outlet, useLocation } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
-import { Box, CircularProgress } from '@mui/material';
+import { Outlet } from 'react-router-dom';
+import { Box } from '@mui/material';
 import { Navbar } from '../common/Navbar';
 import Sidebar from './Sidebar';
 import TopSubMenu from './TopSubMenu';
 import { useTheme } from '../../contexts/ThemeContext';
 
 const ProtectedLayout: React.FC = () => {
-  const { isAuthenticated, isLoading } = useAuth();
   const { toggleTheme } = useTheme();
-  const location = useLocation();
   const [activeMenu, setActiveMenu] = useState<any>(null);
 
   const handleMenuSelect = (menu: any) => {
     setActiveMenu(menu);
   };
-
-  if (isLoading) {
-    return (
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          height: '100vh',
-        }}
-      >
-        <CircularProgress />
-      </Box>
-    );
-  }
-
-  if (!isAuthenticated) {
-    // Redirect to login page with the return url
-    return <Navigate to="/login" state={{ from: location }} replace />;
-  }
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>

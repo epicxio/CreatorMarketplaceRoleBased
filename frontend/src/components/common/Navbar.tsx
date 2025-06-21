@@ -1,7 +1,7 @@
 import { Typography, Box, IconButton, useTheme } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { styled } from '@mui/material/styles';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 import ProfileMenu from '../layout/ProfileMenu';
 import { Menu as MenuIcon } from '@mui/icons-material';
 

@@ -17,7 +17,7 @@ import {
   Settings,
   Person,
 } from '@mui/icons-material';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 
 const ProfileMenu: React.FC = () => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -57,9 +57,9 @@ const ProfileMenu: React.FC = () => {
         onClick={handleMenu}
         sx={{ color: theme.palette.primary.main }}
       >
-        {user?.photoURL ? (
+        {user?.profileImage ? (
           <Avatar 
-            src={user.photoURL} 
+            src={user.profileImage} 
             alt={user?.name || 'User'} 
             sx={{ width: 40, height: 40 }}
           />

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Paper,
@@ -13,11 +13,8 @@ import {
   Chip,
   Grid,
   styled,
-  Card,
-  CardContent,
   Tooltip,
   Avatar,
-  Divider,
   Table,
   TableBody,
   TableCell,
@@ -29,18 +26,19 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  CircularProgress,
+  Alert,
 } from '@mui/material';
 import {
-  Email as EmailIcon,
-  WhatsApp as WhatsAppIcon,
-  Person as PersonIcon,
-  School as SchoolIcon,
-  Work as WorkIcon,
-  AccessTime as AccessTimeIcon,
-  Login as LoginIcon,
-  Logout as LogoutIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
   VpnKey as VpnKeyIcon,
+  PersonAdd as PersonAddIcon,
+  Person as PersonIcon,
 } from '@mui/icons-material';
+import userService, { User, CreateUserData, UpdateUserData } from '../../services/userService';
+import userTypeService, { UserType } from '../../services/userTypeService';
+import { FuturisticNotification, NotificationType } from '../common/FuturisticNotification';
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(3),
@@ -48,86 +46,103 @@ const StyledPaper = styled(Paper)(({ theme }) => ({
   backgroundColor: theme.palette.background.paper,
   boxShadow: theme.shadows[3],
   minHeight: '100vh',
-  maxWidth: '1600px',
-  marginLeft: 'auto',
-  marginRight: 'auto',
-  width: '100%',
 }));
 
-interface User {
-  id: string;
-  userId: string;
-  name: string;
-  email: string;
-  phone: string;
-  type: 'creator' | 'brand' | 'accountmanager';
-  status: 'active' | 'inactive';
-  lastLogin?: {
-    date: string;
-    time: string;
-  };
-  lastLogout?: {
-    date: string;
-    time: string;
-  };
-  totalLoginHours: number;
-  hasLoggedIn: boolean;
-}
-
-// Mock data for demonstration
-const mockUsers: User[] = [
-  {
-    id: '1',
-    userId: 'CR001',
-    name: 'Cathy Creator',
-    email: 'cathy.creator@platform.com',
-    phone: '+1 234-567-8901',
-    type: 'creator',
-    status: 'active',
-    lastLogin: { date: '2024-03-15', time: '09:30 AM' },
-    lastLogout: { date: '2024-03-15', time: '04:45 PM' },
-    totalLoginHours: 7.25,
-    hasLoggedIn: true,
-  },
-  {
-    id: '2',
-    userId: 'BR001',
-    name: 'BrandX',
-    email: 'contact@brandx.com',
-    phone: '+1 234-567-8902',
-    type: 'brand',
-    status: 'active',
-    lastLogin: { date: '2024-03-15', time: '08:00 AM' },
-    lastLogout: { date: '2024-03-15', time: '06:00 PM' },
-    totalLoginHours: 10,
-    hasLoggedIn: true,
-  },
-  {
-    id: '3',
-    userId: 'AM001',
-    name: 'Andy Manager',
-    email: 'andy.manager@platform.com',
-    phone: '+1 234-567-8903',
-    type: 'accountmanager',
-    status: 'active',
-    lastLogin: { date: '2024-03-14', time: '10:15 AM' },
-    lastLogout: { date: '2024-03-14', time: '03:30 PM' },
-    totalLoginHours: 5.25,
-    hasLoggedIn: true,
-  },
-];
-
 const UserManagement: React.FC = () => {
-  const [users, setUsers] = useState<User[]>(mockUsers);
+  const [users, setUsers] = useState<User[]>([]);
+  const [userTypes, setUserTypes] = useState<UserType[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
-  const [typeFilter, setTypeFilter] = useState<'all' | 'creator' | 'brand' | 'accountmanager'>('all');
+  const [typeFilter, setTypeFilter] = useState<string>('all');
+  
+  const [openDialog, setOpenDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [formData, setFormData] = useState<Partial<CreateUserData | UpdateUserData>>({});
+  
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const [resetting, setResetting] = useState(false);
+  const [tempPassword, setTempPassword] = useState<string | null>(null);
+  const [notification, setNotification] = useState<{ open: boolean, message: string, title: string, type: NotificationType }>({ open: false, message: '', title: '', type: 'info' });
 
-  const handleResetPassword = (user: User) => {
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const [usersData, userTypesData] = await Promise.all([
+        userService.getUsers(),
+        userTypeService.getUserTypes(),
+      ]);
+      setUsers(usersData);
+      setUserTypes(userTypesData);
+    } catch (err) {
+      setError('Failed to fetch data. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddUser = () => {
+    setSelectedUser(null);
+    setFormData({ name: '', email: '', password: '', userType: '' });
+    setOpenDialog(true);
+  };
+
+  const handleEditUser = (user: User) => {
+    setSelectedUser(user);
+    setFormData({ name: user.name, email: user.email, userType: user.userType._id });
+    setOpenDialog(true);
+  };
+  
+  const handleDeleteUser = async (userId: string) => {
+    const userToDelete = users.find(user => user._id === userId);
+    if (userToDelete && userToDelete.status === 'deleted') {
+      setNotification({
+        open: true,
+        title: 'Action Denied',
+        message: 'This user is already deleted and cannot be deleted again.',
+        type: 'warning',
+      });
+      return;
+    }
+
+    if (window.confirm('Are you sure you want to deactivate this user? This is a soft delete.')) {
+      try {
+        await userService.deleteUser(userId);
+        await fetchData();
+        setNotification({
+          open: true,
+          title: 'Success',
+          message: 'User has been successfully deactivated.',
+          type: 'success',
+        });
+      } catch (err) {
+        setError('Failed to delete user.');
+      }
+    }
+  };
+
+  const handleSaveUser = async () => {
+    try {
+      if (selectedUser) {
+        await userService.updateUser(selectedUser._id, formData as UpdateUserData);
+      } else {
+        await userService.createUser(formData as CreateUserData);
+      }
+      setOpenDialog(false);
+      await fetchData();
+    } catch (err) {
+      setError('Failed to save user.');
+    }
+  };
+  
+  const handleOpenResetDialog = (user: User) => {
     setSelectedUser(user);
     setResetDialogOpen(true);
   };
@@ -136,23 +151,23 @@ const UserManagement: React.FC = () => {
     setResetDialogOpen(false);
     setSelectedUser(null);
     setResetting(false);
+    setTempPassword(null);
   };
 
-  const handleConfirmReset = () => {
+  const handleConfirmReset = async () => {
     if (!selectedUser) return;
-
     setResetting(true);
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      const result = await userService.resetPassword(selectedUser._id);
+      setTempPassword(result.temporaryPassword);
+    } catch (err) {
+      setError('Failed to reset password.');
+    } finally {
       setResetting(false);
-      handleCloseResetDialog();
-      // Show success message or update UI
-    }, 1500);
+    }
   };
 
-  const handleChangePage = (event: unknown, newPage: number) => {
-    setPage(newPage);
-  };
+  const handleChangePage = (event: unknown, newPage: number) => setPage(newPage);
 
   const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
     setRowsPerPage(parseInt(event.target.value, 10));
@@ -160,157 +175,108 @@ const UserManagement: React.FC = () => {
   };
 
   const filteredUsers = users.filter(user => {
-    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.userId.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = typeFilter === 'all' || user.type === typeFilter;
+    const userTypeName = user.userType && user.userType.name ? user.userType.name.toLowerCase() : '';
+    const matchesSearch = (user.name ? user.name.toLowerCase() : '').includes(searchTerm.toLowerCase()) ||
+                         (user.email ? user.email.toLowerCase() : '').includes(searchTerm.toLowerCase());
+    const matchesType = typeFilter === 'all' || (user.userType && user.userType._id === typeFilter);
     return matchesSearch && matchesType;
   });
+  
+  if (loading) return <CircularProgress />;
+  if (error) return <Alert severity="error">{error}</Alert>;
 
   return (
     <StyledPaper>
-      <Box sx={{ maxWidth: '1400px', mx: 'auto', width: '100%' }}>
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="h5" component="h1" gutterBottom>
-            User Management
-          </Typography>
+      <FuturisticNotification
+        open={notification.open}
+        onClose={() => setNotification({ ...notification, open: false })}
+        title={notification.title}
+        message={notification.message}
+        type={notification.type}
+      />
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h5" component="h1">User Management</Typography>
+        <Button variant="contained" startIcon={<PersonAddIcon />} onClick={handleAddUser}>
+          Add User
+        </Button>
         </Box>
         <Box sx={{ mb: 3 }}>
           <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} sm={6}>
+          <Grid item xs={12} sm={8}>
               <TextField
                 fullWidth
                 label="Search Users"
                 variant="outlined"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                InputProps={{
-                  startAdornment: <PersonIcon sx={{ mr: 1, color: 'action.active' }} />,
-                }}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+          <Grid item xs={12} sm={4}>
               <FormControl fullWidth variant="outlined">
                 <InputLabel>User Type</InputLabel>
                 <Select
                   value={typeFilter}
-                  onChange={(e) => setTypeFilter(e.target.value as 'all' | 'creator' | 'brand' | 'accountmanager')}
+                onChange={(e) => setTypeFilter(e.target.value as string)}
                   label="User Type"
                 >
                   <MenuItem value="all">All Users</MenuItem>
-                  <MenuItem value="creator">Creators</MenuItem>
-                  <MenuItem value="brand">Brands</MenuItem>
-                  <MenuItem value="accountmanager">Account Managers</MenuItem>
+                {userTypes.map(type => <MenuItem key={type._id} value={type._id}>{type.name}</MenuItem>)}
                 </Select>
               </FormControl>
             </Grid>
           </Grid>
         </Box>
 
-        <TableContainer sx={{ maxWidth: '100%', overflowX: 'auto' }}>
+      <TableContainer>
           <Table>
             <TableHead>
               <TableRow>
+              <TableCell>Name</TableCell>
                 <TableCell>User ID</TableCell>
-                <TableCell>Name</TableCell>
+              <TableCell>Creator ID</TableCell>
                 <TableCell>Type</TableCell>
-                <TableCell>Details</TableCell>
                 <TableCell>Status</TableCell>
                 <TableCell>Last Login</TableCell>
                 <TableCell>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {filteredUsers
-                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell>{user.userId}</TableCell>
+            {filteredUsers.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((user) => (
+              <TableRow key={user._id}>
                     <TableCell>
                       <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <Avatar
-                          sx={{
-                            mr: 2,
-                            bgcolor:
-                              user.type === 'creator'
-                                ? 'primary.main'
-                                : user.type === 'brand'
-                                ? 'secondary.main'
-                                : 'info.main',
-                          }}
-                        >
-                          {user.name.charAt(0)}
+                    <Avatar sx={{ mr: 2, bgcolor: user.userType && user.userType.color ? `${user.userType.color}.main` : 'primary.main' }}>
+                      {user.name ? user.name.charAt(0) : '?'}
                         </Avatar>
                         <Box>
-                          <Typography variant="body1">{user.name}</Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            {user.email}
-                          </Typography>
+                      <Typography variant="body1">{user.name || 'Unknown User'}</Typography>
+                      <Typography variant="body2" color="text.secondary">{user.email || 'No email'}</Typography>
                         </Box>
                       </Box>
                     </TableCell>
+                <TableCell>{user.userId}</TableCell>
+                <TableCell>{user.creatorId || 'N/A'}</TableCell>
                     <TableCell>
-                      <Chip
-                        icon={
-                          user.type === 'creator' ? (
-                            <PersonIcon />
-                          ) : user.type === 'brand' ? (
-                            <WorkIcon />
-                          ) : (
-                            <WhatsAppIcon />
-                          )
-                        }
-                        label={
-                          user.type === 'creator'
-                            ? 'Creator'
-                            : user.type === 'brand'
-                            ? 'Brand'
-                            : 'Account Manager'
-                        }
-                        color={
-                          user.type === 'creator'
-                            ? 'primary'
-                            : user.type === 'brand'
-                            ? 'secondary'
-                            : 'info'
-                        }
-                      />
+                  <Chip label={user.userType && user.userType.name ? user.userType.name : 'Unknown'} size="small" sx={{ 
+                      backgroundColor: user.userType && user.userType.color ? `${user.userType.color}.light` : 'default',
+                      color: user.userType && user.userType.color ? `${user.userType.color}.dark` : 'inherit'
+                  }} />
                     </TableCell>
                     <TableCell>
-                      <Typography variant="body2" color="text.secondary">
-                        {user.phone}
-                      </Typography>
+                  <Chip label={user.status} color={user.status === 'active' ? 'success' : 'default'} size="small" />
                     </TableCell>
                     <TableCell>
-                      <Chip
-                        label={user.status}
-                        color={user.status === 'active' ? 'success' : 'error'}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      {user.hasLoggedIn ? (
-                        <Box>
-                          <Typography variant="body2">
-                            {user.lastLogin?.date} {user.lastLogin?.time}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            Total Hours: {user.totalLoginHours}
-                          </Typography>
-                        </Box>
-                      ) : (
-                        <Typography variant="body2" color="text.secondary">
-                          Never logged in
-                        </Typography>
-                      )}
+                  {user.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'Never'}
                     </TableCell>
                     <TableCell>
                       <Tooltip title="Reset Password">
-                        <IconButton
-                          onClick={() => handleResetPassword(user)}
-                          color="primary"
-                        >
-                          <VpnKeyIcon />
-                        </IconButton>
+                    <IconButton onClick={() => handleOpenResetDialog(user)}><VpnKeyIcon /></IconButton>
+                  </Tooltip>
+                  <Tooltip title="Edit User">
+                    <IconButton onClick={() => handleEditUser(user)}><EditIcon /></IconButton>
+                  </Tooltip>
+                  <Tooltip title="Delete User">
+                    <IconButton onClick={() => handleDeleteUser(user._id)}><DeleteIcon /></IconButton>
                       </Tooltip>
                     </TableCell>
                   </TableRow>
@@ -318,57 +284,8 @@ const UserManagement: React.FC = () => {
             </TableBody>
           </Table>
         </TableContainer>
-
-        <Dialog open={resetDialogOpen} onClose={handleCloseResetDialog}>
-          <DialogTitle>Reset Password</DialogTitle>
-          <DialogContent>
-            {selectedUser && (
-              <Box sx={{ mt: 2 }}>
-                <Typography variant="body1" gutterBottom>
-                  Are you sure you want to reset the password for:
-                </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                  <Avatar
-                    sx={{
-                      mr: 2,
-                      bgcolor:
-                        selectedUser.type === 'creator'
-                          ? 'primary.main'
-                          : selectedUser.type === 'brand'
-                          ? 'secondary.main'
-                          : 'info.main',
-                    }}
-                  >
-                    {selectedUser.name.charAt(0)}
-                  </Avatar>
-                  <Box>
-                    <Typography variant="body1">{selectedUser.name}</Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {selectedUser.email}
-                    </Typography>
-                  </Box>
-                </Box>
-                <Typography variant="body2" color="text.secondary">
-                  A temporary password will be generated and the user will be required to change it on their next login.
-                </Typography>
-              </Box>
-            )}
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleCloseResetDialog}>Cancel</Button>
-            <Button
-              onClick={handleConfirmReset}
-              variant="contained"
-              color="primary"
-              disabled={resetting}
-            >
-              {resetting ? 'Resetting...' : 'Reset Password'}
-            </Button>
-          </DialogActions>
-        </Dialog>
-
         <TablePagination
-          rowsPerPageOptions={[5, 10, 25]}
+        rowsPerPageOptions={[10, 25, 50]}
           component="div"
           count={filteredUsers.length}
           rowsPerPage={rowsPerPage}
@@ -376,7 +293,72 @@ const UserManagement: React.FC = () => {
           onPageChange={handleChangePage}
           onRowsPerPageChange={handleChangeRowsPerPage}
         />
-      </Box>
+      
+      {/* Add/Edit User Dialog */}
+      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>{selectedUser ? 'Edit User' : 'Add New User'}</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Name"
+            fullWidth
+            value={formData.name || ''}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          />
+          <TextField
+            margin="dense"
+            label="Email"
+            type="email"
+            fullWidth
+            value={formData.email || ''}
+            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+          />
+          {!selectedUser && (
+            <TextField
+              margin="dense"
+              label="Password"
+              type="password"
+              fullWidth
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+            />
+          )}
+          <FormControl fullWidth margin="dense">
+            <InputLabel>User Type</InputLabel>
+            <Select
+              value={formData.userType || ''}
+              onChange={(e) => setFormData({ ...formData, userType: e.target.value })}
+              label="User Type"
+            >
+              {userTypes.map(type => <MenuItem key={type._id} value={type._id}>{type.name}</MenuItem>)}
+            </Select>
+          </FormControl>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenDialog(false)}>Cancel</Button>
+          <Button onClick={handleSaveUser} variant="contained">{selectedUser ? 'Update' : 'Create'}</Button>
+        </DialogActions>
+      </Dialog>
+      
+      {/* Reset Password Dialog */}
+      <Dialog open={resetDialogOpen} onClose={handleCloseResetDialog} maxWidth="sm" fullWidth>
+        <DialogTitle>Reset Password for {selectedUser?.name}</DialogTitle>
+        <DialogContent>
+          {resetting ? (
+            <CircularProgress />
+          ) : tempPassword ? (
+            <Alert severity="success">
+              Password has been reset. The temporary password is: <strong>{tempPassword}</strong>
+            </Alert>
+          ) : (
+            <Typography>Are you sure you want to reset the password for this user? A temporary password will be generated.</Typography>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseResetDialog}>Close</Button>
+          {!tempPassword && <Button onClick={handleConfirmReset} variant="contained" disabled={resetting}>Reset Password</Button>}
+        </DialogActions>
+      </Dialog>
     </StyledPaper>
   );
 };

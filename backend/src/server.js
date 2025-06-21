@@ -3,6 +3,10 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const brandRoutes = require('./routes/brandRoutes');
+const roleRoutes = require('./routes/roleRoutes');
+const permissionRoutes = require('./routes/permissionRoutes');
+const userRoutes = require('./routes/userRoutes');
+const userTypeRoutes = require('./routes/userTypeRoutes');
 
 const app = express();
 
@@ -18,6 +22,8 @@ mongoose.connect(process.env.MONGODB_URI)
 
 // Routes
 app.use('/api/brands', brandRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/user-types', userTypeRoutes);
 
 // Basic route for testing
 app.get('/', (req, res) => {
@@ -32,6 +38,10 @@ app.use('/auth/instagram', instagramAuth);
 
 const authRoutes = require('./routes/authRoutes');
 app.use('/api/auth', authRoutes);
+
+// Role management routes
+app.use('/api/roles', roleRoutes);
+app.use('/api/permissions', permissionRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

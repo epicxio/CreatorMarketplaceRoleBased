@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Paper,
@@ -14,654 +14,414 @@ import {
   TextField,
   IconButton,
   Chip,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TablePagination,
   Tooltip,
   styled,
   Avatar,
   Switch,
   FormControlLabel,
-  Divider,
+  Alert,
+  CircularProgress,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  FormGroup,
+  Checkbox,
 } from '@mui/material';
 import {
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
-  Visibility as ViewIcon,
   Security as SecurityIcon,
-  CheckCircle as CheckCircleIcon,
-  Cancel as CancelIcon,
-  Group as GroupIcon,
-  Work as WorkIcon,
-  School as SchoolIcon,
-  Person as PersonIcon,
+  ExpandMore as ExpandMoreIcon,
+  PersonOutline,
+  ArticleOutlined,
+  CampaignOutlined,
+  StorefrontOutlined,
+  StarOutline,
+  AnalyticsOutlined,
+  WorkOutline,
+  ManageAccountsOutlined,
+  AdminPanelSettingsOutlined,
+  ShieldOutlined,
+  VisibilityOutlined,
+  AddCircleOutline,
+  DeleteOutline,
+  EditOutlined,
 } from '@mui/icons-material';
+import roleService, { Role, CreateRoleData, Permission } from '../../services/roleService';
+import userService, { User } from '../../services/userService';
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(3),
   margin: theme.spacing(2),
-  backgroundColor: theme.palette.background.paper,
-  boxShadow: theme.shadows[3],
-  minHeight: '100vh',
-  '& .MuiPaper-root': {
-    width: '100%',
-    maxWidth: '2000px',
-    ml: 0,
-    mr: 0.5,
-    my: 0,
-    p: { xs: 2, sm: 2.5 },
-  },
-}));
-
-const RoleCard = styled(Card)(({ theme }) => ({
-  height: '100%',
-  display: 'flex',
-  flexDirection: 'column',
-  background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
-  transition: 'transform 0.3s ease-in-out',
-  '&:hover': {
-    transform: 'translateY(-5px)',
-    boxShadow: theme.shadows[8],
-  },
-}));
-
-const PermissionChip = styled(Chip)(({ theme }) => ({
-  margin: theme.spacing(0.5),
-  background: 'rgba(255, 255, 255, 0.8)',
+  backgroundColor: 'rgba(255, 255, 255, 0.05)',
   backdropFilter: 'blur(10px)',
-  '&:hover': {
-    background: 'rgba(255, 255, 255, 0.9)',
-  },
+  border: '1px solid rgba(255, 255, 255, 0.1)',
+  color: theme.palette.text.primary,
 }));
 
-const PermissionToggle = styled(Box)(({ theme }) => ({
-  display: 'flex',
-  alignItems: 'center',
-  padding: theme.spacing(1),
-  margin: theme.spacing(0.5),
-  borderRadius: theme.shape.borderRadius,
-  backgroundColor: theme.palette.background.default,
-  border: `1px solid ${theme.palette.divider}`,
-  transition: 'all 0.2s ease-in-out',
-  '&:hover': {
-    backgroundColor: theme.palette.action.hover,
-  },
-}));
+const userTypeIcons: { [key: string]: React.ReactElement } = {
+    employee: <WorkOutline color="primary" />,
+    creator: <StarOutline color="primary" />,
+    brand: <StorefrontOutlined color="primary" />,
+    accountmanager: <ManageAccountsOutlined color="primary" />,
+    admin: <AdminPanelSettingsOutlined color="primary" />,
+    superadmin: <ShieldOutlined color="primary" />,
+};
 
-const PermissionLabel = styled(Typography)(({ theme }) => ({
-  flex: 1,
-  marginLeft: theme.spacing(1),
-}));
+const permissionIcons: { [key: string]: React.ReactElement } = {
+    User: <PersonOutline />,
+    Role: <SecurityIcon />,
+    Content: <ArticleOutlined />,
+    Campaign: <CampaignOutlined />,
+    Brand: <StorefrontOutlined />,
+    Creator: <StarOutline />,
+    Analytics: <AnalyticsOutlined />,
+    'Roles & Permissions': <SecurityIcon />,
+    'User Types': <PersonOutline />,
+    'Permission Management': <SecurityIcon />,
+    'Access Control': <SecurityIcon />,
+    'Audit Logs': <AnalyticsOutlined />,
+};
 
-const PermissionSwitch = styled(Switch)(({ theme }) => ({
-  '& .MuiSwitch-switchBase': {
-    '&.Mui-checked': {
-      color: theme.palette.primary.main,
-      '& + .MuiSwitch-track': {
-        backgroundColor: theme.palette.primary.main,
-      },
-    },
-  },
-  '& .MuiSwitch-track': {
-    backgroundColor: theme.palette.grey[400],
-  },
-}));
-
-const UserTypeToggle = styled(Box)(({ theme }) => ({
-  display: 'flex',
-  alignItems: 'center',
-  padding: theme.spacing(1),
-  margin: theme.spacing(0.5),
-  borderRadius: theme.shape.borderRadius,
-  backgroundColor: theme.palette.background.default,
-  border: `1px solid ${theme.palette.divider}`,
-  transition: 'all 0.2s ease-in-out',
-  '&:hover': {
-    backgroundColor: theme.palette.action.hover,
-  },
-}));
-
-const UserTypeLabel = styled(Typography)(({ theme }) => ({
-  flex: 1,
-  marginLeft: theme.spacing(1),
-}));
-
-const UserCard = styled(Box)(({ theme }) => ({
-  display: 'flex',
-  alignItems: 'center',
-  padding: theme.spacing(1),
-  margin: theme.spacing(0.5),
-  borderRadius: theme.shape.borderRadius,
-  backgroundColor: theme.palette.background.default,
-  border: `1px solid ${theme.palette.divider}`,
-  transition: 'all 0.2s ease-in-out',
-  '&:hover': {
-    backgroundColor: theme.palette.action.hover,
-  },
-}));
-
-const UserInfo = styled(Box)(({ theme }) => ({
-  flex: 1,
-  marginLeft: theme.spacing(1),
-}));
-
-interface User {
-  id: string;
-  name: string;
-  type: 'employee' | 'teacher' | 'student' | 'parent' | 'superadmin' | 'admin' | 'creator' | 'accountmanager' | 'brand';
-  email: string;
-  department?: string;
-  grade?: string;
-  class?: string;
-}
-
-// Update mockUsers to include users for each new user type:
-const mockUsers: User[] = [
-  { id: 'SA001', name: 'Alice Root', type: 'superadmin', email: 'alice.root@platform.com' },
-  { id: 'AD001', name: 'Bob Admin', type: 'admin', email: 'bob.admin@platform.com' },
-  { id: 'CR001', name: 'Cathy Creator', type: 'creator', email: 'cathy.creator@platform.com' },
-  { id: 'AM001', name: 'Andy Manager', type: 'accountmanager', email: 'andy.manager@platform.com' },
-  { id: 'BR001', name: 'BrandX', type: 'brand', email: 'contact@brandx.com' },
-  // ... (optionally keep a few legacy users for reference) ...
-];
-
-interface Role {
-  id: string;
-  name: string;
-  description: string;
-  permissions: string[];
-  usersCount: number;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-  userTypes: string[];
-  assignedUsers: string[];
-  system?: boolean;
-}
-
-// Update mockRoles to:
-const mockRoles: Role[] = [
-  {
-    id: '1',
-    name: 'Super Admin',
-    description: 'Full platform access and system configuration',
-    permissions: ['all'],
-    usersCount: 1,
-    isActive: true,
-    createdAt: '2024-01-01',
-    updatedAt: '2024-03-15',
-    userTypes: ['employee'],
-    assignedUsers: ['EMP001'],
-    system: true,
-  },
-  {
-    id: '2',
-    name: 'Admin',
-    description: 'Manage users, roles, and platform settings',
-    permissions: ['user:create', 'user:edit', 'user:delete', 'role:create', 'role:edit', 'role:delete'],
-    usersCount: 2,
-    isActive: true,
-    createdAt: '2024-01-10',
-    updatedAt: '2024-03-10',
-    userTypes: ['employee'],
-    assignedUsers: ['EMP002'],
-    system: true,
-  },
-  {
-    id: '3',
-    name: 'Creator',
-    description: 'Create and manage content, campaigns, and collaborations',
-    permissions: ['content:read', 'content:write', 'content:delete', 'campaign:create', 'campaign:edit'],
-    usersCount: 10,
-    isActive: true,
-    createdAt: '2024-01-15',
-    updatedAt: '2024-03-12',
-    userTypes: ['student'],
-    assignedUsers: ['STD001', 'STD002'],
-    system: true,
-  },
-  {
-    id: '4',
-    name: 'Account Manager',
-    description: 'Manage creators, brands, and campaigns',
-    permissions: ['creator:manage', 'brand:manage', 'campaign:manage'],
-    usersCount: 3,
-    isActive: true,
-    createdAt: '2024-01-20',
-    updatedAt: '2024-03-14',
-    userTypes: ['employee'],
-    assignedUsers: ['EMP003'],
-    system: true,
-  },
-  {
-    id: '5',
-    name: 'Brand',
-    description: 'Manage brand profile, products, and collaborations',
-    permissions: ['brand:profile', 'brand:product', 'brand:collab'],
-    usersCount: 5,
-    isActive: true,
-    createdAt: '2024-01-25',
-    updatedAt: '2024-03-13',
-    userTypes: ['employee'],
-    assignedUsers: [],
-    system: true,
-  },
-  // ... dynamic roles can be added below ...
-];
+const actionIcons: { [key: string]: React.ReactElement } = {
+  Create: <AddCircleOutline color="success" />,
+  View: <VisibilityOutlined color="info" />,
+  Edit: <EditOutlined color="warning" />,
+  Delete: <DeleteOutline color="error" />,
+};
 
 const RoleManagement: React.FC = () => {
-  const [roles, setRoles] = useState<Role[]>(mockRoles);
-  const [openDialog, setOpenDialog] = useState(false);
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [availablePermissions, setAvailablePermissions] = useState<Permission[]>([]);
+  const [availableUserTypes, setAvailableUserTypes] = useState<string[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(5);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [openDialog, setOpenDialog] = useState(false);
 
-  const handleOpenDialog = (role?: Role) => {
-    if (role) {
-      setSelectedRole(role);
-    } else {
-      setSelectedRole({
-        id: '',
-        name: '',
-        description: '',
-        permissions: [],
-        usersCount: 0,
-        isActive: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        userTypes: [],
-        assignedUsers: [],
-      });
+  const [formData, setFormData] = useState<CreateRoleData>({
+    name: '',
+    description: '',
+    permissions: [],
+    userTypes: [],
+    assignedUsers: []
+  });
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const [rolesData, permissionsData, userTypesData, usersData] = await Promise.all([
+        roleService.getRoles(),
+        roleService.getPermissions(),
+        roleService.getUserTypes(),
+        userService.getUsers()
+      ]);
+      setRoles(rolesData);
+      setAvailablePermissions(permissionsData);
+      setAvailableUserTypes(userTypesData);
+      setUsers(usersData);
+    } catch (err) {
+      setError('Failed to fetch required data. Please try again.');
+      console.error('Error fetching data:', err);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const groupedPermissions = useMemo(() => {
+    return availablePermissions.reduce((acc, permission) => {
+      const resource = permission.resource || 'General';
+      acc[resource] = acc[resource] || [];
+      acc[resource].push(permission);
+      return acc;
+    }, {} as Record<string, Permission[]>);
+  }, [availablePermissions]);
+
+  const handleAddRole = () => {
+    setSelectedRole(null);
+    setFormData({
+      name: '',
+      description: '',
+      permissions: [],
+      userTypes: [],
+      assignedUsers: []
+    });
     setOpenDialog(true);
   };
 
-  const handleCloseDialog = () => {
-    setOpenDialog(false);
-    setSelectedRole(null);
+  const handleEditRole = (role: Role) => {
+    setSelectedRole(role);
+    setFormData({
+      name: role.name,
+      description: role.description,
+      permissions: role.permissions ? role.permissions.map(p => p._id) : [],
+      userTypes: role.userTypes,
+      assignedUsers: role.assignedUsers,
+    });
+    setOpenDialog(true);
   };
 
-  const handleSaveRole = () => {
-    if (selectedRole) {
-      if (selectedRole.id) {
-        // Update existing role
-        setRoles(roles.map(role => 
-          role.id === selectedRole.id ? selectedRole : role
-        ));
-      } else {
-        // Add new role
-        const newRole = {
-          ...selectedRole,
-          id: (roles.length + 1).toString(),
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-        setRoles([...roles, newRole]);
+  const handleDeleteRole = async (roleId: string) => {
+    if (window.confirm('Are you sure you want to delete this role?')) {
+      try {
+        await roleService.deleteRole(roleId);
+        await fetchData();
+      } catch (err) {
+        setError('Failed to delete role. Please try again.');
+        console.error('Error deleting role:', err);
       }
     }
-    handleCloseDialog();
   };
 
-  const handleDeleteRole = (roleId: string) => {
-    setRoles(roles.filter(role => role.id !== roleId));
+  const handlePermissionChange = (permissionId: string) => {
+    setFormData(prev => {
+      const newPermissions = prev.permissions.includes(permissionId)
+        ? prev.permissions.filter(id => id !== permissionId)
+        : [...prev.permissions, permissionId];
+      return { ...prev, permissions: newPermissions };
+    });
   };
 
-  const handleChangePage = (event: unknown, newPage: number) => {
-    setPage(newPage);
+  const handleUserTypeChange = (userType: string) => {
+    const newUserTypes = formData.userTypes.includes(userType)
+      ? formData.userTypes.filter(ut => ut !== userType)
+      : [...formData.userTypes, userType];
+    setFormData({ ...formData, userTypes: newUserTypes });
   };
 
-  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
+  const handleAssignUserChange = (userId: string) => {
+    const newAssignedUsers = formData.assignedUsers.includes(userId)
+      ? formData.assignedUsers.filter(id => id !== userId)
+      : [...formData.assignedUsers, userId];
+    setFormData({ ...formData, assignedUsers: newAssignedUsers });
   };
 
-  const filteredRoles = roles.filter(role =>
-    role.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    role.description.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const handleSaveRole = async () => {
+    try {
+      if (selectedRole) {
+        await roleService.updateRole(selectedRole._id, formData);
+      } else {
+        await roleService.createRole(formData);
+      }
+      setOpenDialog(false);
+      await fetchData();
+    } catch (err) {
+      setError('Failed to save role. Please try again.');
+      console.error('Error saving role:', err);
+    }
+  };
+  
+  const usersToDisplay = users.filter(user => user.userType && formData.userTypes.includes(user.userType.name));
+
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
     <StyledPaper>
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Role Management
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          Manage user roles and permissions across the platform
-        </Typography>
-      </Box>
-
-      <Box sx={{ mb: 4 }}>
         <Grid container spacing={2} alignItems="center">
           <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              label="Search Roles"
-              variant="outlined"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              InputProps={{
-                startAdornment: <SecurityIcon sx={{ mr: 1, color: 'action.active' }} />,
-              }}
-            />
+            <Typography variant="h6">Available Roles</Typography>
           </Grid>
           <Grid item xs={12} md={6} sx={{ textAlign: 'right' }}>
             <Button
               variant="contained"
               startIcon={<AddIcon />}
-              onClick={() => handleOpenDialog()}
+              onClick={handleAddRole}
             >
-              Create New Role
+              Add New Role
             </Button>
           </Grid>
         </Grid>
       </Box>
 
-      <TableContainer component={Paper} sx={{ mb: 4 }}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Role Name</TableCell>
-              <TableCell>Description</TableCell>
-              <TableCell>Permissions</TableCell>
-              <TableCell>Users</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {filteredRoles
-              .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-              .map((role) => (
-                <TableRow key={role.id}>
-                  <TableCell>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>
-                        <SecurityIcon />
-                      </Avatar>
-                      <Typography variant="subtitle1">{role.name}</Typography>
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+          {error}
+        </Alert>
+      )}
+
+      <Grid container spacing={3}>
+        {roles.map((role) => (
+          <Grid item xs={12} md={6} lg={4} key={role._id}>
+            <Card sx={{ height: '100%' }}>
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>
+                    <SecurityIcon />
+                  </Avatar>
+                  <Box sx={{ flex: 1 }}>
+                    <Typography variant="h6" component="h2">
+                      {role.name}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {role.description}
+                    </Typography>
+                  </Box>
+                </Box>
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="subtitle2" gutterBottom>
+                    Permissions: {role.permissions?.length || 0}
+                  </Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Chip
+                    label={role.isActive ? 'Active' : 'Inactive'}
+                    color={role.isActive ? 'success' : 'default'}
+                    size="small"
+                  />
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Tooltip title="Edit Role">
+                      <IconButton size="small" onClick={() => handleEditRole(role)}>
+                        <EditIcon />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Delete Role">
+                      <IconButton
+                        size="small"
+                        onClick={() => handleDeleteRole(role._id)}
+                        color="error"
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+        ))}
+      </Grid>
+
+      {/* Add/Edit Role Dialog */}
+      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="md" fullWidth>
+        <DialogTitle>{selectedRole ? 'Edit Role' : 'Create New Role'}</DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12}><TextField fullWidth label="Role Name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required /></Grid>
+            <Grid item xs={12}><TextField fullWidth label="Description" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} multiline rows={3} required /></Grid>
+            <Grid item xs={12}>
+              <Typography variant="subtitle1" gutterBottom sx={{ mt: 2 }}>Permissions</Typography>
+              {Object.entries(groupedPermissions).sort(([a], [b]) => a.localeCompare(b)).map(([resource, perms]) => (
+                <Accordion key={resource}>
+                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                      {permissionIcons[resource] || <SecurityIcon color="primary" />}
+                      <Typography>{resource.charAt(0).toUpperCase() + resource.slice(1)}</Typography>
                     </Box>
-                  </TableCell>
-                  <TableCell>{role.description}</TableCell>
-                  <TableCell>
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                      {role.permissions.map((permission, index) => (
-                        <PermissionChip
-                          key={index}
-                          label={permission}
-                          size="small"
+                  </AccordionSummary>
+                  <AccordionDetails sx={{ p: 1 }}>
+                    <FormGroup>
+                      {perms.map(permission => (
+                        <FormControlLabel
+                          key={permission._id}
+                          sx={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            width: '100%',
+                            py: 0.5,
+                            mx: 0,
+                          }}
+                          label={
+                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                              {actionIcons[permission.action] || <SecurityIcon fontSize="small" />}
+                              <Typography sx={{ ml: 1.5 }}>{permission.action}</Typography>
+                            </Box>
+                          }
+                          labelPlacement="start"
+                          control={
+                            <Switch
+                              checked={formData.permissions.includes(permission._id)}
+                              onChange={() => handlePermissionChange(permission._id)}
+                            />
+                          }
                         />
                       ))}
-                    </Box>
-                  </TableCell>
-                  <TableCell>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <GroupIcon sx={{ mr: 1, color: 'action.active' }} />
-                      {role.usersCount}
-                    </Box>
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      icon={role.isActive ? <CheckCircleIcon /> : <CancelIcon />}
-                      label={role.isActive ? 'Active' : 'Inactive'}
-                      color={role.isActive ? 'success' : 'error'}
-                      size="small"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Box sx={{ display: 'flex', gap: 1 }}>
-                      <Tooltip title="View Details">
-                        <IconButton size="small" onClick={() => handleOpenDialog(role)}>
-                          <ViewIcon />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Edit Role">
-                        <IconButton size="small" onClick={() => handleOpenDialog(role)}>
-                          <EditIcon />
-                        </IconButton>
-                      </Tooltip>
-                      {role.system ? (
-                        <Tooltip title="System Role">
-                          <IconButton size="small" disabled>
-                            <SecurityIcon />
-                          </IconButton>
-                        </Tooltip>
-                      ) : (
-                        <Tooltip title="Delete Role">
-                          <IconButton size="small" onClick={() => handleDeleteRole(role.id)}>
-                            <DeleteIcon />
-                          </IconButton>
-                        </Tooltip>
-                      )}
-                    </Box>
-                  </TableCell>
-                </TableRow>
+                    </FormGroup>
+                  </AccordionDetails>
+                </Accordion>
               ))}
-          </TableBody>
-        </Table>
-        <TablePagination
-          rowsPerPageOptions={[5, 10, 25]}
-          component="div"
-          count={filteredRoles.length}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={handleChangePage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
-        />
-      </TableContainer>
-
-      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
-        <DialogTitle>
-          {selectedRole?.id ? 'Edit Role' : 'Create New Role'}
-        </DialogTitle>
-        <DialogContent>
-          <Box sx={{ mt: 2 }}>
-            <Grid container spacing={3}>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Role Name"
-                  value={selectedRole?.name || ''}
-                  onChange={(e) => setSelectedRole({ ...selectedRole!, name: e.target.value })}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Description"
-                  multiline
-                  rows={3}
-                  value={selectedRole?.description || ''}
-                  onChange={(e) => setSelectedRole({ ...selectedRole!, description: e.target.value })}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={selectedRole?.isActive || false}
-                      onChange={(e) => setSelectedRole({ ...selectedRole!, isActive: e.target.checked })}
-                    />
-                  }
-                  label="Active"
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <Typography variant="subtitle1" gutterBottom>
-                  Permissions
-                </Typography>
-                <Box sx={{ 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  gap: 1,
-                  maxHeight: '300px',
-                  overflowY: 'auto',
-                  p: 1,
-                  backgroundColor: 'background.paper',
-                  borderRadius: 1,
-                  border: '1px solid',
-                  borderColor: 'divider'
-                }}>
-                  {[
-                    { label: 'Content Management', permissions: ['content:read', 'content:write', 'content:delete'] },
-                    { label: 'Course Management', permissions: ['course:create', 'course:edit', 'course:view'] },
-                    { label: 'Analytics Access', permissions: ['analytics:view', 'reports:generate'] },
-                    { label: 'User Management', permissions: ['user:create', 'user:edit', 'user:delete'] },
-                    { label: 'Role Management', permissions: ['role:create', 'role:edit', 'role:delete'] },
-                  ].map((group) => (
-                    <Box key={group.label} sx={{ mb: 2 }}>
-                      <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
-                        {group.label}
-                      </Typography>
-                      {group.permissions.map((permission) => (
-                        <PermissionToggle key={permission}>
-                          <PermissionLabel variant="body2">
-                            {permission.split(':')[1].charAt(0).toUpperCase() + permission.split(':')[1].slice(1)}
-                          </PermissionLabel>
-                          <PermissionSwitch
-                            size="small"
-                            checked={selectedRole?.permissions.includes(permission) || false}
-                            onChange={() => {
-                              const permissions = selectedRole?.permissions || [];
-                              const newPermissions = permissions.includes(permission)
-                                ? permissions.filter(p => p !== permission)
-                                : [...permissions, permission];
-                              setSelectedRole({ ...selectedRole!, permissions: newPermissions });
-                            }}
-                          />
-                        </PermissionToggle>
-                      ))}
+            </Grid>
+            <Grid item xs={12}>
+              <Typography variant="subtitle1" gutterBottom sx={{ mt: 2 }}>User Types</Typography>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                {availableUserTypes.map((userType) => (
+                  <Paper
+                    key={userType}
+                    variant="outlined"
+                    sx={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      p: 1.5,
+                      borderRadius: '8px'
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                      {userTypeIcons[userType.toLowerCase()] || <SecurityIcon color="primary" />}
+                      <Typography>{userType.charAt(0).toUpperCase() + userType.slice(1)}</Typography>
                     </Box>
-                  ))}
-                </Box>
-              </Grid>
+                    <Switch
+                      checked={formData.userTypes.includes(userType)}
+                      onChange={() => handleUserTypeChange(userType)}
+                    />
+                  </Paper>
+                ))}
+              </Box>
+            </Grid>
+            {formData.userTypes.length > 0 && (
               <Grid item xs={12}>
-                <Typography variant="subtitle1" gutterBottom>
-                  User Types
-                </Typography>
-                <Box sx={{ 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  gap: 1,
-                  p: 1,
-                  backgroundColor: 'background.paper',
-                  borderRadius: 1,
-                  border: '1px solid',
-                  borderColor: 'divider'
-                }}>
-                  {[
-                    { type: 'superadmin', label: 'Super Admin', icon: <SecurityIcon /> },
-                    { type: 'admin', label: 'Admin', icon: <SecurityIcon /> },
-                    { type: 'creator', label: 'Creator', icon: <PersonIcon /> },
-                    { type: 'accountmanager', label: 'Account Manager', icon: <GroupIcon /> },
-                    { type: 'brand', label: 'Brand', icon: <WorkIcon /> },
-                  ].map((userType) => (
-                    <UserTypeToggle key={userType.type}>
-                      <Avatar sx={{ bgcolor: 'primary.main', width: 24, height: 24 }}>
-                        {userType.icon}
-                      </Avatar>
-                      <UserTypeLabel variant="body2">
-                        {userType.label}
-                      </UserTypeLabel>
-                      <PermissionSwitch
-                        size="small"
-                        checked={selectedRole?.userTypes.includes(userType.type) || false}
-                        onChange={() => {
-                          const userTypes = selectedRole?.userTypes || [];
-                          const newUserTypes = userTypes.includes(userType.type)
-                            ? userTypes.filter(t => t !== userType.type)
-                            : [...userTypes, userType.type];
-                          setSelectedRole({ ...selectedRole!, userTypes: newUserTypes });
-                        }}
-                      />
-                    </UserTypeToggle>
-                  ))}
-                </Box>
-              </Grid>
-              <Grid item xs={12}>
-                <Typography variant="subtitle1" gutterBottom>
-                  Assign Users
-                </Typography>
-                <Box sx={{ 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  gap: 2,
-                  p: 1,
-                  backgroundColor: 'background.paper',
-                  borderRadius: 1,
-                  border: '1px solid',
-                  borderColor: 'divider'
-                }}>
-                  {selectedRole?.userTypes.map((userType) => {
-                    const usersOfType = mockUsers.filter(user => user.type === userType);
-                    return (
-                      <Box key={userType} sx={{ mb: 2 }}>
-                        <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
-                          {userType.charAt(0).toUpperCase() + userType.slice(1)}s
-                        </Typography>
-                        <Box sx={{ 
-                          display: 'flex', 
-                          flexDirection: 'column', 
-                          gap: 1,
-                          maxHeight: '200px',
-                          overflowY: 'auto',
-                          p: 1,
-                          backgroundColor: 'background.default',
-                          borderRadius: 1,
-                        }}>
-                          {usersOfType.map((user) => (
-                            <UserCard key={user.id}>
-                              <Avatar sx={{ bgcolor: 'primary.main', width: 32, height: 32 }}>
-                                {user.name.charAt(0)}
-                              </Avatar>
-                              <UserInfo>
-                                <Typography variant="body2" fontWeight="medium">
-                                  {user.name}
-                                </Typography>
-                                <Typography variant="caption" color="text.secondary">
-                                  {user.email}
-                                  {user.department && ` • ${user.department}`}
-                                  {user.grade && ` • Grade ${user.grade}`}
-                                  {user.class && ` • Class ${user.class}`}
-                                </Typography>
-                              </UserInfo>
-                              <PermissionSwitch
-                                size="small"
-                                checked={selectedRole?.assignedUsers.includes(user.id) || false}
-                                onChange={() => {
-                                  const assignedUsers = selectedRole?.assignedUsers || [];
-                                  const newAssignedUsers = assignedUsers.includes(user.id)
-                                    ? assignedUsers.filter(id => id !== user.id)
-                                    : [...assignedUsers, user.id];
-                                  setSelectedRole({ ...selectedRole!, assignedUsers: newAssignedUsers });
-                                }}
-                              />
-                            </UserCard>
-                          ))}
+                <Typography variant="subtitle1" gutterBottom sx={{ mt: 2 }}>Assign Users</Typography>
+                <Box sx={{ maxHeight: 300, overflow: 'auto', display: 'flex', flexDirection: 'column', gap: 1, p: 0.5 }}>
+                  {usersToDisplay.map(user => (
+                    <Paper
+                      key={user._id}
+                      variant="outlined"
+                      sx={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        p: 1.5,
+                        borderRadius: '8px'
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                        {user.userType && userTypeIcons[user.userType.name.toLowerCase()] || <PersonOutline color="primary" />}
+                        <Box>
+                          <Typography>{user.name}</Typography>
+                          <Typography variant="body2" color="text.secondary">{user.email}</Typography>
                         </Box>
                       </Box>
-                    );
-                  })}
+                      <Switch
+                        checked={formData.assignedUsers.includes(user._id)}
+                        onChange={() => handleAssignUserChange(user._id)}
+                      />
+                    </Paper>
+                  ))}
                 </Box>
               </Grid>
-            </Grid>
-          </Box>
+            )}
+          </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseDialog}>Cancel</Button>
-          <Button onClick={handleSaveRole} variant="contained" color="primary">
-            Save
-          </Button>
+          <Button onClick={() => setOpenDialog(false)}>Cancel</Button>
+          <Button onClick={handleSaveRole} variant="contained">{selectedRole ? 'Update' : 'Create'}</Button>
         </DialogActions>
       </Dialog>
     </StyledPaper>
   );
 };
 
-export default RoleManagement;
+export default RoleManagement; 

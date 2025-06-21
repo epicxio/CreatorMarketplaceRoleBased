@@ -2,9 +2,10 @@ import { Box, Typography, Container, Grid, styled, TextField, Button, ToggleButt
 import { useNavigate } from 'react-router-dom';
 import { School, Business, Email, Lock, Visibility, VisibilityOff, Instagram, Facebook, YouTube, CheckCircle } from '@mui/icons-material';
 import { useState, useEffect } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 import { motion } from 'framer-motion';
 import { Dialog as MUIDialog, DialogContent as MUIDialogContent } from '@mui/material';
+import authService from '../../services/authService';
 
 // Logo image import
 import creatorLogo from '../../assets/creator-logo.png';
@@ -239,7 +240,7 @@ interface LoginFormData {
 
 export const Home = () => {
   console.log('Home component rendering');
-  const { signup, login } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
   const [formData, setFormData] = useState<SignUpFormData>({
     name: '',
@@ -310,7 +311,8 @@ export const Home = () => {
     e.preventDefault();
     setError('');
     try {
-      await login(loginFormData.email, loginFormData.password);
+      const token = await authService.login(loginFormData.email, loginFormData.password);
+      await login(token);
       setLoginDialogOpen(false);
       navigate('/dashboard');
     } catch (err) {

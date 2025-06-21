@@ -49,7 +49,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(3),
@@ -104,7 +104,7 @@ export const Creator: React.FC = () => {
 
   // Fetch pending creators for Super Admin
   useEffect(() => {
-    if (user?.role === 'superadmin') {
+    if (user?.role?.name === 'superadmin') {
       setPendingLoading(true);
       axios.get(`${BACKEND_URL}/api/creators/pending`)
         .then(res => setPendingCreators(res.data))
@@ -279,7 +279,7 @@ export const Creator: React.FC = () => {
         </TableContainer>
       </StyledPaper>
 
-      {user?.role === 'superadmin' && (
+      {user?.role?.name === 'superadmin' && (
         <StyledPaper>
           <Typography variant="h6" sx={{ mb: 2 }}>Pending Creator Requests</Typography>
           {pendingLoading ? (
