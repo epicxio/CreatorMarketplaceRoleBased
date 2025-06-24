@@ -45,6 +45,7 @@ export interface User {
   
   // Account Manager specific fields
   assignedClients?: string[];
+  assignedScreens?: string[];
   
   // Common metadata
   profileImage?: string;
@@ -82,6 +83,7 @@ export interface CreateUserData {
   email: string;
   password?: string;
   userType: string;
+  role: string;
   organization?: string;
   department?: string;
   status?: string;
@@ -105,12 +107,14 @@ export interface CreateUserData {
     country?: string;
     zipCode?: string;
   };
+  profileImage?: string;
 }
 
 export interface UpdateUserData {
   name?: string;
   email?: string;
   userType?: string;
+  role?: string;
   organization?: string;
   department?: string;
   status?: string;
@@ -134,6 +138,7 @@ export interface UpdateUserData {
     country?: string;
     zipCode?: string;
   };
+  profileImage?: string;
 }
 
 class UserService {

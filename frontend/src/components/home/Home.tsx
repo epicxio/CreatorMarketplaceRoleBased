@@ -80,6 +80,11 @@ const StyledTextField = styled(TextField)`
     background: rgba(255, 255, 255, 0.05);
     border-radius: 8px;
   }
+
+  & .MuiInputBase-input:-webkit-autofill {
+    -webkit-box-shadow: 0 0 0 100px transparent inset;
+    -webkit-text-fill-color: inherit;
+  }
 `;
 
 const SignUpButton = styled(Button)`
@@ -227,6 +232,9 @@ const LoginDialog = styled(Dialog)`
 interface SignUpFormData {
   name: string;
   email: string;
+  username: string;
+  phoneNumber: string;
+  password: string;
   instagram: string;
   facebook: string;
   youtube: string;
@@ -245,6 +253,9 @@ export const Home = () => {
   const [formData, setFormData] = useState<SignUpFormData>({
     name: '',
     email: '',
+    username: '',
+    phoneNumber: '',
+    password: '',
     instagram: '',
     facebook: '',
     youtube: '',
@@ -261,6 +272,8 @@ export const Home = () => {
   const [facebookConnected, setFacebookConnected] = useState(false);
   const [youtubeConnected, setYouTubeConnected] = useState(false);
   const [successDialogOpen, setSuccessDialogOpen] = useState(false);
+  const [usernameError, setUsernameError] = useState('');
+  const [phoneError, setPhoneError] = useState('');
 
   useEffect(() => {
     console.log('Home component mounted');
@@ -276,13 +289,20 @@ export const Home = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    if (usernameError || phoneError) {
+      setError('Please fix the errors before submitting.');
+      return;
+    }
     try {
-      const response = await fetch('http://localhost:5000/api/creators/signup', {
+      const response = await fetch('/api/users/creator-signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: formData.name,
           email: formData.email,
+          username: formData.username,
+          phoneNumber: formData.phoneNumber,
+          password: formData.password,
           instagram: formData.instagram,
           facebook: formData.facebook,
           youtube: formData.youtube,
@@ -293,7 +313,7 @@ export const Home = () => {
         throw new Error(data.message || 'Sign up failed');
       }
       setSuccessDialogOpen(true);
-      setFormData({ name: '', email: '', instagram: '', facebook: '', youtube: '' });
+      setFormData({ name: '', email: '', username: '', phoneNumber: '', password: '', instagram: '', facebook: '', youtube: '' });
     } catch (err: any) {
       setError(err.message || 'Failed to sign up. Please try again.');
       console.error('Signup error:', err);
@@ -330,6 +350,66 @@ export const Home = () => {
   const handleConnectInstagram = () => { setInstagramConnected(true); };
   const handleConnectFacebook = () => { setFacebookConnected(true); };
   const handleConnectYouTube = () => { setYouTubeConnected(true); };
+
+  const handleUsernameBlur = async () => {
+    if (!formData.username) return;
+    try {
+      const res = await fetch(`/api/users/check-username?username=${encodeURIComponent(formData.username)}`);
+      if (res.status === 304) {
+        setUsernameError('');
+        return;
+      }
+      if (!res.ok) {
+        setUsernameError('Could not validate username (server error)');
+        console.error('Username check failed: HTTP', res.status);
+        return;
+      }
+      const text = await res.text();
+      if (!text) {
+        setUsernameError('');
+        return;
+      }
+      const data = JSON.parse(text);
+      if (data.taken) {
+        setUsernameError('Username is already taken');
+      } else {
+        setUsernameError('');
+      }
+    } catch (err) {
+      setUsernameError('Could not validate username (network error)');
+      console.error('Username check error:', err);
+    }
+  };
+
+  const handlePhoneBlur = async () => {
+    if (!formData.phoneNumber) return;
+    try {
+      const res = await fetch(`/api/users/check-phone?phoneNumber=${encodeURIComponent(formData.phoneNumber)}`);
+      if (res.status === 304) {
+        setPhoneError('');
+        return;
+      }
+      if (!res.ok) {
+        setPhoneError('Could not validate phone number (server error)');
+        console.error('Phone check failed: HTTP', res.status);
+        return;
+      }
+      const text = await res.text();
+      if (!text) {
+        setPhoneError('');
+        return;
+      }
+      const data = JSON.parse(text);
+      if (data.taken) {
+        setPhoneError('Phone number is already registered');
+      } else {
+        setPhoneError('');
+      }
+    } catch (err) {
+      setPhoneError('Could not validate phone number (network error)');
+      console.error('Phone check error:', err);
+    }
+  };
 
   return (
     <RootContainer>
@@ -394,6 +474,37 @@ export const Home = () => {
                       type="email"
                       name="email"
                       value={formData.email}
+                      onChange={handleChange}
+                      required
+                    />
+                    <StyledTextField
+                      fullWidth
+                      label="Username"
+                      name="username"
+                      value={formData.username}
+                      onChange={handleChange}
+                      onBlur={handleUsernameBlur}
+                      required
+                      error={!!usernameError}
+                      helperText={usernameError}
+                    />
+                    <StyledTextField
+                      fullWidth
+                      label="Phone Number"
+                      name="phoneNumber"
+                      value={formData.phoneNumber}
+                      onChange={handleChange}
+                      onBlur={handlePhoneBlur}
+                      required
+                      error={!!phoneError}
+                      helperText={phoneError}
+                    />
+                    <StyledTextField
+                      fullWidth
+                      label="Password"
+                      type="password"
+                      name="password"
+                      value={formData.password}
                       onChange={handleChange}
                       required
                     />

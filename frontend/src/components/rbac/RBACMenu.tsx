@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   List,
@@ -10,6 +10,7 @@ import {
   IconButton,
   Tooltip,
   Box,
+  ListItemButton,
 } from '@mui/material';
 import {
   ExpandLess,
@@ -28,16 +29,24 @@ import {
   SupervisorAccount,
   FamilyRestroom,
   Class,
+  Home,
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
-import { getMenuByRole } from '../../config/menuConfig';
-import { MenuItem } from '../../types/rbac';
+import { menuHierarchy } from '../../config/navigation';
+
+interface MenuItem {
+  title: string;
+  path: string;
+  icon?: React.ReactNode;
+  resource: string;
+  children?: MenuItem[];
+}
 
 const StyledList = styled(List)(({ theme }) => ({
   width: '100%',
   maxWidth: 360,
   backgroundColor: 'transparent',
-  padding: theme.spacing(1),
+  padding: 0,
 }));
 
 const StyledListItem = styled(ListItem)<{ depth?: number }>(({ theme, depth = 0 }) => ({
@@ -54,6 +63,10 @@ const StyledListItem = styled(ListItem)<{ depth?: number }>(({ theme, depth = 0 
 const StyledListItemIcon = styled(ListItemIcon)(({ theme }) => ({
   minWidth: 40,
   color: theme.palette.primary.main,
+}));
+
+const StyledListItemButton = styled(ListItemButton)(({ theme }) => ({
+  // Add any custom styles here if needed
 }));
 
 const iconMap: { [key: string]: React.ElementType } = {
@@ -73,64 +86,43 @@ const iconMap: { [key: string]: React.ElementType } = {
   Class,
 };
 
-interface MenuItemProps {
+interface MenuItemComponentProps {
   item: MenuItem;
-  depth?: number;
   open?: boolean;
   onToggle?: () => void;
 }
 
-const MenuItemComponent: React.FC<MenuItemProps> = ({
-  item,
-  depth = 0,
-  open,
-  onToggle,
-}) => {
+const MenuItemComponent: React.FC<MenuItemComponentProps> = ({ item, open, onToggle }) => {
   const navigate = useNavigate();
-  const Icon = item.icon && iconMap[item.icon] ? iconMap[item.icon] : Dashboard;
 
   const handleClick = () => {
-    if (item.children) {
+    if (item.children && item.children.length > 0) {
       onToggle?.();
     } else if (item.path) {
       navigate(item.path);
     }
   };
 
+  const IconComponent = item.icon ? item.icon : <Home />;
+
   return (
     <>
-      <StyledListItem
-        depth={depth}
-        onClick={handleClick}
-        sx={{
-          backgroundColor: open ? 'rgba(255, 255, 255, 0.05)' : 'transparent',
-          cursor: 'pointer',
-        }}
-      >
-        <Tooltip title={item.label} placement="right">
-          <StyledListItemIcon>
-            <Icon />
-          </StyledListItemIcon>
-        </Tooltip>
-        <ListItemText
-          primary={item.label}
-          sx={{
-            '& .MuiTypography-root': {
-              fontWeight: depth === 0 ? 500 : 400,
-              fontSize: depth === 0 ? '0.95rem' : '0.9rem',
-            },
-          }}
-        />
-        {item.children && (open ? <ExpandLess /> : <ExpandMore />)}
-      </StyledListItem>
+      <StyledListItemButton onClick={handleClick}>
+        <ListItemIcon>{IconComponent}</ListItemIcon>
+        <ListItemText primary={item.title} />
+        {item.children && item.children.length > 0 ? (
+          open ? <ExpandLess /> : <ExpandMore />
+        ) : null}
+      </StyledListItemButton>
       {item.children && (
         <Collapse in={open} timeout="auto" unmountOnExit>
-          <List component="div" disablePadding>
-            {item.children.map((child) => (
+          <List component="div" disablePadding sx={{ pl: 4 }}>
+            {item.children.map((child: MenuItem) => (
               <MenuItemComponent
-                key={child.id}
+                key={child.path}
                 item={child}
-                depth={depth + 1}
+                open={true} // Sub-menus are always "open" in this simplified view
+                onToggle={() => {}} // No toggle for sub-items
               />
             ))}
           </List>
@@ -142,46 +134,56 @@ const MenuItemComponent: React.FC<MenuItemProps> = ({
 
 const RBACMenu: React.FC = () => {
   const { user } = useAuth();
-  const [openMenus, setOpenMenus] = React.useState<{ [key: string]: boolean }>({});
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
 
-  const menuItems = React.useMemo(() => {
-    return user ? getMenuByRole(user.role) : [];
+  // Helper: recursively filter menu items by assignedScreens
+  function filterMenuByAssignedScreens(menu: MenuItem[], allowedScreens: string[]): MenuItem[] {
+    return menu
+      .filter(item => allowedScreens.includes(item.resource))
+      .map(item => {
+        if (item.children) {
+          const filteredChildren = filterMenuByAssignedScreens(item.children, allowedScreens);
+          return { ...item, children: filteredChildren };
+        }
+        return item;
+      })
+      .filter(item => {
+        // If has children, only keep if children remain after filtering
+        if (item.children) {
+          return item.children.length > 0;
+        }
+        return true;
+      });
+  }
+
+  useEffect(() => {
+    let allowedScreens = user?.assignedScreens && user.assignedScreens.length > 0
+      ? user.assignedScreens
+      : ['Dashboard'];
+    const filteredMenu = filterMenuByAssignedScreens(menuHierarchy as MenuItem[], allowedScreens);
+    setMenuItems(filteredMenu);
   }, [user]);
 
-  const handleToggle = (itemId: string) => {
-    setOpenMenus((prev) => ({
-      ...prev,
-      [itemId]: !prev[itemId],
-    }));
+  const handleToggle = (path: string) => {
+    setOpenMenus(prev => ({ ...prev, [path]: !prev[path] }));
   };
 
   return (
     <Box
       sx={{
-        height: '100%',
-        backgroundColor: 'background.paper',
-        borderRight: '1px solid',
-        borderColor: 'divider',
-        overflowY: 'auto',
-        '&::-webkit-scrollbar': {
-          width: '4px',
-        },
-        '&::-webkit-scrollbar-track': {
-          background: 'transparent',
-        },
-        '&::-webkit-scrollbar-thumb': {
-          background: 'rgba(255, 255, 255, 0.1)',
-          borderRadius: '4px',
-        },
+        width: '100%',
+        maxWidth: 360,
+        bgcolor: 'background.paper',
       }}
     >
       <StyledList>
         {menuItems.map((item) => (
           <MenuItemComponent
-            key={item.id}
+            key={item.path}
             item={item}
-            open={openMenus[item.id]}
-            onToggle={() => handleToggle(item.id)}
+            open={openMenus[item.path] || false}
+            onToggle={() => handleToggle(item.path)}
           />
         ))}
       </StyledList>

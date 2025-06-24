@@ -8,9 +8,14 @@ exports.login = async (req, res) => {
     return res.status(400).json({ message: 'Email and password are required.' });
   }
   try {
-    const user = await User.findOne({ email }).populate('userType', 'name');
+    const user = await User.findOne({ email }).populate('userType', 'name').populate('role', 'name');
     if (!user) {
       return res.status(401).json({ message: 'Invalid credentials.' });
+    }
+
+    // Block login if userType is missing or invalid
+    if (!user.userType || typeof user.userType !== 'object' || !user.userType.name) {
+      return res.status(403).json({ message: 'User type missing or invalid. Please contact support.' });
     }
 
     const isMatch = await bcrypt.compare(password, user.passwordHash);
@@ -31,13 +36,14 @@ exports.login = async (req, res) => {
       });
     }
 
-    // Create JWT Payload
+    console.log('User found:', user);
     const payload = {
       user: {
         id: user.id,
         name: user.name,
         email: user.email,
-        userType: user.userType.name
+        userType: (user.userType && typeof user.userType === 'object' && user.userType.name) ? user.userType.name : null,
+        role: (user.role && typeof user.role === 'object' && user.role.name) ? user.role.name : null
       }
     };
 
@@ -89,17 +95,33 @@ exports.changePassword = async (req, res) => {
 
 exports.getProfile = async (req, res) => {
   try {
-    // req.user.id is coming from the auth middleware
-    const user = await User.findById(req.user.id).select('-passwordHash').populate({
-      path: 'role',
-      populate: {
-        path: 'permissions'
-      }
-    });
+    const user = await User.findById(req.user.id)
+      .select('-passwordHash')
+      .populate('userType', 'name')
+      .populate({
+        path: 'role',
+        populate: { path: 'permissions' }
+      });
+
     if (!user) {
       return res.status(404).json({ msg: 'User not found' });
     }
-    res.json(user);
+
+    // NEW: Dynamically compute assignedScreens from permissions
+    let assignedScreens = [];
+    if (user.role && user.role.permissions) {
+      assignedScreens = user.role.permissions
+        .filter(p => p.action === 'View')
+        .map(p => p.resource);
+    }
+    if (assignedScreens.length === 0) {
+      assignedScreens = ['Dashboard']; // fallback
+    }
+
+    const userObject = user.toObject();
+    userObject.assignedScreens = assignedScreens;
+
+    res.json(userObject);
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');

@@ -1,4 +1,5 @@
 const Creator = require('../models/Creator');
+const crypto = require('crypto');
 
 // Helper to generate next creatorId
 async function getNextCreatorId() {
@@ -13,15 +14,34 @@ async function getNextCreatorId() {
 // Creator sign up (status: pending)
 exports.signupCreator = async (req, res) => {
   try {
-    const { name, email, bio, instagram, facebook, youtube } = req.body;
-    const existing = await Creator.findOne({ email });
-    if (existing) {
+    const { name, email, username, phoneNumber, password, bio, instagram, facebook, youtube } = req.body;
+    if (!username || !phoneNumber || !password) {
+      console.error('Missing required fields:', req.body);
+    }
+    if (!username) return res.status(400).json({ message: 'Username is required.' });
+    if (!phoneNumber) return res.status(400).json({ message: 'Phone number is required.' });
+    if (!password) return res.status(400).json({ message: 'Password is required.' });
+    const existingEmail = await Creator.findOne({ email });
+    if (existingEmail) {
       return res.status(400).json({ message: 'Creator with this email already exists.' });
     }
+    const existingUsername = await Creator.findOne({ username });
+    if (existingUsername) {
+      return res.status(400).json({ message: 'Username is already taken.' });
+    }
+    const existingPhone = await Creator.findOne({ phoneNumber });
+    if (existingPhone) {
+      return res.status(400).json({ message: 'Phone number is already registered.' });
+    }
+    // Hash the password using SHA-256
+    const passwordHash = crypto.createHash('sha256').update(password).digest('hex');
     const creatorId = await getNextCreatorId();
     const creator = new Creator({
       name,
       email,
+      username,
+      phoneNumber,
+      passwordHash,
       bio,
       instagram,
       facebook,
@@ -108,6 +128,36 @@ exports.softDeleteCreator = async (req, res) => {
     res.json({ message: 'Creator soft deleted', creator });
   } catch (err) {
     console.error('Soft delete creator error:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+// Check if username is taken
+exports.checkUsername = async (req, res) => {
+  try {
+    const { username } = req.query;
+    if (!username) return res.status(400).json({ message: 'Username is required.' });
+    const existing = await Creator.findOne({ username });
+    if (existing) {
+      return res.json({ taken: true });
+    }
+    res.json({ taken: false });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+// Check if phone number is registered
+exports.checkPhoneNumber = async (req, res) => {
+  try {
+    const { phoneNumber } = req.query;
+    if (!phoneNumber) return res.status(400).json({ message: 'Phone number is required.' });
+    const existing = await Creator.findOne({ phoneNumber });
+    if (existing) {
+      return res.json({ taken: true });
+    }
+    res.json({ taken: false });
+  } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 }; 

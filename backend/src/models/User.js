@@ -4,6 +4,8 @@ const userSchema = new mongoose.Schema({
   // Core user fields (required for all user types)
   name: { type: String, required: true, trim: true },
   email: { type: String, required: true, unique: true, trim: true, lowercase: true },
+  username: { type: String, unique: true, sparse: true },
+  phoneNumber: { type: String, unique: true, sparse: true },
   passwordHash: { type: String, required: true },
   userType: { 
     type: mongoose.Schema.Types.ObjectId, 
@@ -12,9 +14,10 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Role'
+    ref: 'Role',
+    required: true
   },
-  status: { type: String, enum: ['active', 'inactive', 'deleted'], default: 'active' },
+  status: { type: String, enum: ['active', 'inactive', 'pending', 'rejected', 'deleted'], default: 'active' },
   
   // User IDs
   userId: { type: String, unique: true, sparse: true }, // Universal user ID for all types
@@ -49,10 +52,10 @@ const userSchema = new mongoose.Schema({
   
   // Account Manager specific fields
   assignedClients: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  assignedScreens: [{ type: String }],
   
   // Common metadata
   profileImage: { type: String },
-  phoneNumber: { type: String },
   address: {
     street: { type: String },
     city: { type: String },
@@ -121,9 +124,14 @@ userSchema.pre('save', async function(next) {
     this.userId = await generateUserId(this.userType);
   }
   
-  // Generate creator ID if user is creator and doesn't have one
-  if (this.isNew && this.isCreator() && !this.creatorId) {
+  // Always generate creatorId for new creators
+  if (this.isNew && !this.creatorId) {
+    // Always fetch the creator UserType ObjectId
+    const UserType = require('./UserType');
+    const creatorType = await UserType.findOne({ name: 'creator' });
+    if (creatorType && this.userType && this.userType.toString() === creatorType._id.toString()) {
     this.creatorId = await generateCreatorId();
+    }
   }
   next();
 });

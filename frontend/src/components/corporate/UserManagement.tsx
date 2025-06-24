@@ -38,6 +38,7 @@ import {
 } from '@mui/icons-material';
 import userService, { User, CreateUserData, UpdateUserData } from '../../services/userService';
 import userTypeService, { UserType } from '../../services/userTypeService';
+import roleService, { Role } from '../../services/roleService';
 import { FuturisticNotification, NotificationType } from '../common/FuturisticNotification';
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
@@ -51,6 +52,7 @@ const StyledPaper = styled(Paper)(({ theme }) => ({
 const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [userTypes, setUserTypes] = useState<UserType[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
@@ -75,12 +77,14 @@ const UserManagement: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      const [usersData, userTypesData] = await Promise.all([
+      const [usersData, userTypesData, rolesData] = await Promise.all([
         userService.getUsers(),
         userTypeService.getUserTypes(),
+        roleService.getRoles(),
       ]);
       setUsers(usersData);
       setUserTypes(userTypesData);
+      setRoles(rolesData);
     } catch (err) {
       setError('Failed to fetch data. Please try again.');
     } finally {
@@ -90,13 +94,18 @@ const UserManagement: React.FC = () => {
 
   const handleAddUser = () => {
     setSelectedUser(null);
-    setFormData({ name: '', email: '', password: '', userType: '' });
+    setFormData({ name: '', email: '', password: '', userType: '', role: '' });
     setOpenDialog(true);
   };
 
   const handleEditUser = (user: User) => {
     setSelectedUser(user);
-    setFormData({ name: user.name, email: user.email, userType: user.userType._id });
+    setFormData({ 
+      name: user.name, 
+      email: user.email, 
+      userType: user.userType._id,
+      role: user.role?._id || ''
+    });
     setOpenDialog(true);
   };
   
@@ -235,6 +244,7 @@ const UserManagement: React.FC = () => {
                 <TableCell>User ID</TableCell>
               <TableCell>Creator ID</TableCell>
                 <TableCell>Type</TableCell>
+                <TableCell>Role</TableCell>
                 <TableCell>Status</TableCell>
                 <TableCell>Last Login</TableCell>
                 <TableCell>Actions</TableCell>
@@ -261,6 +271,13 @@ const UserManagement: React.FC = () => {
                       backgroundColor: user.userType && user.userType.color ? `${user.userType.color}.light` : 'default',
                       color: user.userType && user.userType.color ? `${user.userType.color}.dark` : 'inherit'
                   }} />
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={user.role && user.role.name ? user.role.name : 'No Role'}
+                        size="small"
+                        color="default"
+                      />
                     </TableCell>
                     <TableCell>
                   <Chip label={user.status} color={user.status === 'active' ? 'success' : 'default'} size="small" />
@@ -331,6 +348,16 @@ const UserManagement: React.FC = () => {
               label="User Type"
             >
               {userTypes.map(type => <MenuItem key={type._id} value={type._id}>{type.name}</MenuItem>)}
+            </Select>
+          </FormControl>
+          <FormControl fullWidth margin="dense">
+            <InputLabel>Role</InputLabel>
+            <Select
+              value={formData.role || ''}
+              onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+              label="Role"
+            >
+              {roles.map(role => <MenuItem key={role._id} value={role._id}>{role.name}</MenuItem>)}
             </Select>
           </FormControl>
         </DialogContent>

@@ -46,6 +46,8 @@ import {
   Block as BlockIcon,
   Image as ImageIcon,
   Visibility as VisibilityIcon,
+  Phone as PhoneIcon,
+  Lock as LockIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -71,6 +73,13 @@ interface Creator {
   facebook: string;
   youtube: string;
   status: 'active' | 'inactive' | 'pending' | 'rejected';
+  username: string;
+  phoneNumber: string;
+  socialMedia?: {
+    instagram?: string;
+    facebook?: string;
+    youtube?: string;
+  };
 }
 
 const grades = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
@@ -92,26 +101,38 @@ export const Creator: React.FC = () => {
   const [formError, setFormError] = useState<string | null>(null);
   const navigate = useNavigate();
 
+  const roleName = typeof user?.role === 'string'
+    ? user.role
+    : typeof user?.role?.name === 'string'
+    ? user.role.name
+    : '';
+
   useEffect(() => {
     if (!BACKEND_URL) {
       console.error('REACT_APP_BACKEND_URL is not set in the environment variables.');
       return;
     }
-    axios.get(`${BACKEND_URL}/api/creators`)
+    axios.get(`${BACKEND_URL}/api/users/creators`)
       .then(res => setCreators(res.data))
       .catch(err => console.error('Failed to fetch creators:', err));
   }, []);
 
-  // Fetch pending creators for Super Admin
   useEffect(() => {
-    if (user?.role?.name === 'superadmin') {
+    console.log('Pending creators effect running. roleName:', roleName);
+    if (roleName.replace(/\s/g, '').toLowerCase() === 'superadmin') {
       setPendingLoading(true);
-      axios.get(`${BACKEND_URL}/api/creators/pending`)
-        .then(res => setPendingCreators(res.data))
-        .catch(err => setPendingError('Failed to fetch pending creators'))
+      axios.get(`${BACKEND_URL}/api/users/creators/pending`)
+        .then(res => {
+          console.log('Pending creators API response:', res.data);
+          setPendingCreators(res.data);
+        })
+        .catch(err => {
+          console.error('Error fetching pending creators:', err);
+          setPendingError('Failed to fetch pending creators');
+        })
         .finally(() => setPendingLoading(false));
     }
-  }, [user]);
+  }, [user, roleName]);
 
   const handleAddCreator = () => {
     setSelectedCreator(null);
@@ -131,29 +152,49 @@ export const Creator: React.FC = () => {
 
   const confirmDeleteCreator = async () => {
     if (creatorToDelete && creatorToDelete._id) {
-      await axios.delete(`${BACKEND_URL}/api/creators/${creatorToDelete._id}`);
+      await axios.delete(`${BACKEND_URL}/api/users/${creatorToDelete._id}`);
       // Fetch the updated list from the backend
-      const res = await axios.get(`${BACKEND_URL}/api/creators`);
+      const res = await axios.get(`${BACKEND_URL}/api/users/creators`);
       setCreators(res.data);
       setDeleteDialogOpen(false);
       setCreatorToDelete(null);
     }
   };
 
-  const handleSaveCreator = async (creatorData: Partial<Creator>) => {
+  const handleSaveCreator = async (creatorData: Partial<Creator & { username: string; phoneNumber: string; password: string }>) => {
     setFormError(null);
     try {
       if (selectedCreator && selectedCreator._id) {
         // Edit existing creator
-        await axios.put(`${BACKEND_URL}/api/creators/${selectedCreator._id}`, creatorData);
+        await axios.put(`${BACKEND_URL}/api/users/${selectedCreator._id}`, {
+          ...creatorData,
+          socialMedia: {
+            instagram: creatorData.instagram,
+            facebook: creatorData.facebook,
+            youtube: creatorData.youtube,
+          },
+        });
         // Re-fetch creators from backend
-        const res = await axios.get(`${BACKEND_URL}/api/creators`);
+        const res = await axios.get(`${BACKEND_URL}/api/users/creators`);
         setCreators(res.data);
       } else {
-        // Add new creator
-        await axios.post(`${BACKEND_URL}/api/creators/add`, creatorData);
+        // Add new creator as admin: use /api/users, status: 'active'
+        // Fetch creator userType id
+        const userTypeRes = await axios.get(`${BACKEND_URL}/api/user-types`);
+        const creatorType = userTypeRes.data.find((t: any) => t.name === 'creator');
+        if (!creatorType) throw new Error('Creator user type not found');
+        await axios.post(`${BACKEND_URL}/api/users`, {
+          ...creatorData,
+          status: 'active',
+          userType: creatorType._id,
+          socialMedia: {
+            instagram: creatorData.instagram,
+            facebook: creatorData.facebook,
+            youtube: creatorData.youtube,
+          },
+        });
         // Re-fetch creators from backend
-        const res = await axios.get(`${BACKEND_URL}/api/creators`);
+        const res = await axios.get(`${BACKEND_URL}/api/users/creators`);
         setCreators(res.data);
       }
       setOpenDialog(false);
@@ -167,12 +208,12 @@ export const Creator: React.FC = () => {
   };
 
   const handleApprove = async (id: string) => {
-    await axios.post(`${BACKEND_URL}/api/creators/${id}/approve`);
+    await axios.post(`${BACKEND_URL}/api/users/${id}/approve`);
     setPendingCreators(pendingCreators.filter(c => c._id !== id));
   };
 
   const handleReject = async (id: string) => {
-    await axios.post(`${BACKEND_URL}/api/creators/${id}/reject`);
+    await axios.post(`${BACKEND_URL}/api/users/${id}/reject`);
     setPendingCreators(pendingCreators.filter(c => c._id !== id));
   };
 
@@ -251,9 +292,9 @@ export const Creator: React.FC = () => {
                   </TableCell>
                   <TableCell>{creator.name}</TableCell>
                   <TableCell>{creator.email}</TableCell>
-                  <TableCell>{creator.instagram}</TableCell>
-                  <TableCell>{creator.facebook}</TableCell>
-                  <TableCell>{creator.youtube}</TableCell>
+                  <TableCell>{creator.socialMedia?.instagram || creator.instagram || ''}</TableCell>
+                  <TableCell>{creator.socialMedia?.facebook || creator.facebook || ''}</TableCell>
+                  <TableCell>{creator.socialMedia?.youtube || creator.youtube || ''}</TableCell>
                   <TableCell>
                     <Chip
                       label={creator.status}
@@ -279,7 +320,7 @@ export const Creator: React.FC = () => {
         </TableContainer>
       </StyledPaper>
 
-      {user?.role?.name === 'superadmin' && (
+      {(user && roleName.replace(/\s/g, '').toLowerCase() === 'superadmin') && (
         <StyledPaper>
           <Typography variant="h6" sx={{ mb: 2 }}>Pending Creator Requests</Typography>
           {pendingLoading ? (
@@ -306,9 +347,9 @@ export const Creator: React.FC = () => {
                     <TableRow key={creator._id}>
                       <TableCell>{creator.name}</TableCell>
                       <TableCell>{creator.email}</TableCell>
-                      <TableCell>{creator.instagram}</TableCell>
-                      <TableCell>{creator.facebook}</TableCell>
-                      <TableCell>{creator.youtube}</TableCell>
+                      <TableCell>{creator.socialMedia?.instagram || creator.instagram || ''}</TableCell>
+                      <TableCell>{creator.socialMedia?.facebook || creator.facebook || ''}</TableCell>
+                      <TableCell>{creator.socialMedia?.youtube || creator.youtube || ''}</TableCell>
                       <TableCell>
                         <Button color="success" variant="contained" size="small" sx={{ mr: 1 }} onClick={() => handleApprove(creator._id!)}>Approve</Button>
                         <Button color="error" variant="contained" size="small" onClick={() => handleReject(creator._id!)}>Reject</Button>
@@ -357,7 +398,7 @@ export const Creator: React.FC = () => {
 interface CreatorDialogProps {
   open: boolean;
   onClose: () => void;
-  onSave: (creatorData: Partial<Creator>) => void;
+  onSave: (creatorData: Partial<Creator & { username: string; phoneNumber: string; password: string }>) => void;
   creator: Creator | null;
 }
 
@@ -367,7 +408,7 @@ const CreatorDialog: React.FC<CreatorDialogProps> = ({
   onSave,
   creator,
 }) => {
-  const [formData, setFormData] = useState<Partial<Creator>>(
+  const [formData, setFormData] = useState<Partial<Creator & { username: string; phoneNumber: string; password: string }>>(
     creator || {
       name: '',
       email: '',
@@ -377,29 +418,85 @@ const CreatorDialog: React.FC<CreatorDialogProps> = ({
       facebook: '',
       youtube: '',
       status: 'active',
+      username: '',
+      phoneNumber: '',
+      password: '',
     }
   );
   const [imgHover, setImgHover] = useState(false);
   const [instagramConnected, setInstagramConnected] = useState(false);
   const [facebookConnected, setFacebookConnected] = useState(false);
   const [youtubeConnected, setYouTubeConnected] = useState(false);
+  const [usernameError, setUsernameError] = useState('');
+  const [phoneError, setPhoneError] = useState('');
+  const [dialogError, setDialogError] = useState('');
 
   React.useEffect(() => {
-    setFormData(creator || {
-      name: '',
-      email: '',
-      profilePic: '',
-      bio: '',
-      instagram: '',
-      facebook: '',
-      youtube: '',
-      status: 'active',
+    setFormData({
+      name: creator?.name || '',
+      email: creator?.email || '',
+      profilePic: creator?.profilePic || '',
+      bio: creator?.bio || '',
+      instagram: creator?.socialMedia?.instagram || creator?.instagram || '',
+      facebook: creator?.socialMedia?.facebook || creator?.facebook || '',
+      youtube: creator?.socialMedia?.youtube || creator?.youtube || '',
+      status: creator?.status || 'active',
+      username: creator?.username || (creator?.email ? creator.email.split('@')[0] : ''),
+      phoneNumber: creator?.phoneNumber || '',
+      password: '', // Always blank for edit
     });
+    setUsernameError('');
+    setPhoneError('');
   }, [creator]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Only block submission if there are actual errors
+    if (usernameError || phoneError) {
+      setDialogError('Please fix the errors before submitting.');
+      return;
+    }
+    setDialogError('');
     onSave(formData);
+  };
+
+  // Uniqueness checks: only set error if taken, do not block form submission while pending
+  const handleUsernameBlur = async () => {
+    if (!formData.username) return;
+    try {
+      const res = await fetch(`/api/users/check-username?username=${encodeURIComponent(formData.username)}`);
+      if (!res.ok) {
+        setUsernameError('Could not validate username (server error)');
+        return;
+      }
+      const data = await res.json();
+      if (data.taken) {
+        setUsernameError('Username is already taken');
+      } else {
+        setUsernameError('');
+      }
+    } catch (err) {
+      setUsernameError('Could not validate username (network error)');
+    }
+  };
+
+  const handlePhoneBlur = async () => {
+    if (!formData.phoneNumber) return;
+    try {
+      const res = await fetch(`/api/users/check-phone?phoneNumber=${encodeURIComponent(formData.phoneNumber)}`);
+      if (!res.ok) {
+        setPhoneError('Could not validate phone number (server error)');
+        return;
+      }
+      const data = await res.json();
+      if (data.taken) {
+        setPhoneError('Phone number is already registered');
+      } else {
+        setPhoneError('');
+      }
+    } catch (err) {
+      setPhoneError('Could not validate phone number (network error)');
+    }
   };
 
   // Image upload handler (mock, just sets URL for now)
@@ -527,6 +624,64 @@ const CreatorDialog: React.FC<CreatorDialogProps> = ({
                 }}
               />
             </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                placeholder="Username"
+                value={formData.username || ''}
+                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                onBlur={handleUsernameBlur}
+                required
+                error={!!usernameError}
+                helperText={usernameError}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <PersonIcon color="primary" />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                placeholder="Phone Number"
+                value={formData.phoneNumber || ''}
+                onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+                onBlur={handlePhoneBlur}
+                required
+                error={!!phoneError}
+                helperText={phoneError}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <PhoneIcon color="primary" />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            </Grid>
+            {/* Password field: Only show for new creators */}
+            {!creator && (
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  placeholder="Password"
+                  type="password"
+                  value={formData.password || ''}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  required
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <LockIcon color="primary" />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Grid>
+            )}
             <Grid item xs={12} sm={12}>
               <TextField
                 fullWidth
@@ -639,6 +794,15 @@ const CreatorDialog: React.FC<CreatorDialogProps> = ({
                 boxShadow: 6,
               },
             }}
+            disabled={
+              !formData.name ||
+              !formData.email ||
+              !formData.username ||
+              !formData.phoneNumber ||
+              (!creator && !formData.password) || // Only require password if adding new
+              !!usernameError ||
+              !!phoneError
+            }
           >
             {creator ? 'Save Changes' : 'Add Creator'}
           </Button>
@@ -655,6 +819,12 @@ const CreatorDialog: React.FC<CreatorDialogProps> = ({
               InputProps={{ readOnly: true }}
               sx={{ mb: 2 }}
             />
+          )}
+
+          {dialogError && (
+            <Typography color="error" sx={{ mb: 2, textAlign: 'center' }}>
+              {dialogError}
+            </Typography>
           )}
         </Box>
       </form>

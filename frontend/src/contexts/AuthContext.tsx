@@ -18,6 +18,7 @@ interface User {
   children?: string[];
   class?: string;
   status?: 'active' | 'inactive';
+  assignedScreens?: string[];
 }
 
 interface SignUpData {
@@ -35,6 +36,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   signup: (data: SignUpData) => Promise<void>;
   logout: () => void;
+  updateUserContext: (data: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -122,6 +124,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     navigate('/signup');
   }, [navigate]);
 
+  const updateUserContext = useCallback((data: Partial<User>) => {
+    setUser(prevUser => {
+      if (prevUser) {
+        const updatedUser = { ...prevUser, ...data };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        return updatedUser;
+      }
+      return null;
+    });
+  }, []);
+
   const value = {
     user,
     isAuthenticated: !!user,
@@ -129,6 +142,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     login,
     signup,
     logout,
+    updateUserContext,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

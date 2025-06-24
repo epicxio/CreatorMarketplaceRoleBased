@@ -24,6 +24,9 @@ import {
 import { useLocation, useNavigate } from 'react-router-dom';
 import { DRAWER_WIDTH } from '../../constants/layout';
 import { useAuth } from '../../context/AuthContext';
+import { permissionResources } from '../../config/permissions';
+import { menuHierarchy } from '../../config/navigation';
+import ProfileMenu from './ProfileMenu';
 
 const StyledDrawer = styled(Drawer)(({ theme }) => ({
   width: DRAWER_WIDTH,
@@ -63,7 +66,7 @@ const StyledListItem = styled(ListItemButton)(({ theme }) => ({
   },
 }));
 
-interface MenuItem {
+export interface MenuItem {
   title: string;
   path: string;
   icon: React.ReactNode;
@@ -76,153 +79,26 @@ interface SidebarProps {
   onMenuSelect: (menu: MenuItem) => void;
 }
 
-const menuItems: MenuItem[] = [
-  {
-    title: 'Dashboard',
-    path: '/dashboard',
-    icon: <Dashboard />,
-    resource: 'Dashboard',
-    children: [
-      {
-        title: 'Main Dashboard',
-        path: '/dashboard',
-        icon: <Dashboard />,
-        resource: 'Dashboard',
-      },
-      {
-        title: 'Analytics Dashboard',
-        path: '/dashboard/analytics',
-        icon: <Dashboard />,
-        resource: 'Analytics',
-      },
-    ],
-  },
-  {
-    title: 'User Management',
-    path: '/user-management',
-    icon: <People />,
-    resource: 'User',
-    children: [
-      {
-        title: 'User List',
-        path: '/user-management/list',
-        icon: <People />,
-        resource: 'User',
-      },
-      {
-        title: 'Invitations',
-        path: '/user-management/invitations',
-        icon: <People />,
-        resource: 'User',
-      },
-    ],
-  },
-  // {
-  //   title: 'Brand Management',
-  //   path: '/corporate-management/brands',
-  //   icon: <StoreIcon />,
-  // },
-  // {
-  //   title: 'Corporate Management',
-  //   path: '/corporate-management',
-  //   icon: <Business />,
-  //   children: [
-  //     {
-  //       title: 'Employee Management',
-  //       path: '/corporate-management/employees',
-  //       icon: <People />,
-  //     },
-  //     {
-  //       title: 'Department Management',
-  //       path: '/corporate-management/departments',
-  //       icon: <Business />,
-  //     },
-  //     {
-  //       title: 'Course Allocation',
-  //       path: '/corporate-management/course-allocation',
-  //       icon: <MenuBook />,
-  //     },
-  //   ],
-  // },
-  {
-    title: 'Creator Management',
-    path: '/academic-management',
-    icon: <MenuBook />,
-    resource: 'Creator',
-    children: [
-      {
-        title: 'Creator Management',
-        path: '/academic-management/students',
-        icon: <People />,
-        resource: 'Creator',
-      },
-      {
-        title: 'Account Management',
-        path: '/academic-management/account-managers',
-        icon: <People />,
-        resource: 'User',
-      },
-      {
-        title: 'Brand Management',
-        path: '/corporate-management/brands',
-        icon: <StoreIcon />,
-        resource: 'Brand',
-      },
-      {
-        title: 'Student Course Allocation',
-        path: '/academic-management/course-allocation',
-        icon: <MenuBook />,
-        resource: 'Creator',
-      },
-    ],
-  },
-  {
-    title: 'Roles & Permissions',
-    path: '/roles-permissions',
-    icon: <Security />,
-    resource: 'Role',
-    children: [
-      {
-        title: 'Role Management',
-        path: '/roles-permissions/roles',
-        icon: <Security />,
-        resource: 'Role',
-      },
-      {
-        title: 'User Types',
-        path: '/roles-permissions/user-type',
-        icon: <ManageAccounts />,
-        resource: 'User Types',
-      },
-      {
-        title: 'Permission Management',
-        path: '/roles-permissions/permissions',
-        icon: <Security />,
-        resource: 'Permission Management',
-      },
-      {
-        title: 'Access Control',
-        path: '/roles-permissions/access-control',
-        icon: <Security />,
-        resource: 'Access Control',
-      },
-      {
-        title: 'Audit Logs',
-        path: '/roles-permissions/audit-logs',
-        icon: <Security />,
-        resource: 'Audit Logs',
-      },
-    ],
-  },
-];
-
 const Sidebar: React.FC<SidebarProps> = ({ onThemeToggle, onMenuSelect }) => {
   const theme = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
-  const { hasPermission } = useAuth();
+  const { user, hasPermission } = useAuth();
 
-  const accessibleMenuItems = menuItems.filter(item => hasPermission(item.resource, 'View'));
+  const menuItems: MenuItem[] = menuHierarchy
+    .filter(item => hasPermission(item.resource, 'View'))
+    .map(item => {
+      const resourceInfo = permissionResources.find(p => p.name === item.resource);
+      const Icon = resourceInfo ? resourceInfo.IconComponent : Security;
+      
+      const childrenWithIcons = item.children?.map(child => {
+        const childResourceInfo = permissionResources.find(p => p.name === child.resource);
+        const ChildIcon = childResourceInfo ? childResourceInfo.IconComponent : Icon;
+        return { ...child, title: child.title, icon: <ChildIcon /> };
+      });
+
+      return { ...item, title: resourceInfo?.name || item.resource, icon: <Icon />, children: childrenWithIcons };
+    });
 
   const handleMenuClick = (item: MenuItem) => {
     if (item.children) {
@@ -236,11 +112,14 @@ const Sidebar: React.FC<SidebarProps> = ({ onThemeToggle, onMenuSelect }) => {
     return location.pathname.startsWith(item.path);
   };
 
+  
+  console.log('Checking for User List View:', hasPermission('User List', 'View'));
+
   return (
     <StyledDrawer variant="permanent">
       <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
         <List sx={{ flexGrow: 1, pt: '64px' }}>
-          {accessibleMenuItems.map((item) => (
+          {menuItems.map((item) => (
             <Tooltip key={item.title} title={item.title} placement="right">
               <StyledListItem
                 onClick={() => handleMenuClick(item)}
@@ -253,6 +132,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onThemeToggle, onMenuSelect }) => {
         </List>
         <Divider />
         <Box sx={{ p: 1 }}>
+          <ProfileMenu />
           <Tooltip title="Toggle theme" placement="right">
             <StyledListItem onClick={onThemeToggle}>
               <ListItemIcon>

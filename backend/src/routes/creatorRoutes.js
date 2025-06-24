@@ -52,4 +52,10 @@ router.put('/:id', creatorController.updateCreator);
 // Soft delete creator
 router.delete('/:id', creatorController.softDeleteCreator);
 
+// Check if username is taken
+router.get('/check-username', creatorController.checkUsername);
+
+// Check if phone number is registered
+router.get('/check-phone', creatorController.checkPhoneNumber);
+
 module.exports = router;

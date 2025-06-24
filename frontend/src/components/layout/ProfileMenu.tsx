@@ -10,18 +10,35 @@ import {
   Box,
   Typography,
   useTheme,
+  Dialog,
+  DialogContent,
+  styled
 } from '@mui/material';
 import {
   AccountCircle,
   Logout,
   Settings,
   Person,
+  Close as CloseIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../../context/AuthContext';
+import FuturisticProfile from '../profile/FuturisticProfile';
+import { User } from '../../services/userService';
+
+const StyledDialog = styled(Dialog)(({ theme }) => ({
+  '& .MuiDialog-paper': {
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    backdropFilter: 'blur(10px)',
+    borderRadius: '16px',
+    border: '1px solid rgba(255, 255, 255, 0.2)',
+  },
+}));
 
 const ProfileMenu: React.FC = () => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const { user, logout } = useAuth();
+  const [profileOpen, setProfileOpen] = useState(false);
+  const { user: authUser, logout, updateUser } = useAuth();
+  const user = authUser;
   const theme = useTheme();
 
   const handleMenu = (event: React.MouseEvent<HTMLElement>) => {
@@ -39,7 +56,7 @@ const ProfileMenu: React.FC = () => {
 
   const handleProfile = () => {
     handleClose();
-    // Navigate to profile page
+    setProfileOpen(true);
   };
 
   const handleSettings = () => {
@@ -47,8 +64,12 @@ const ProfileMenu: React.FC = () => {
     // Navigate to settings page
   };
 
+  const handleProfileClose = () => {
+    setProfileOpen(false);
+  };
+
   return (
-    <Box>
+    <Box sx={{ display: 'flex', justifyContent: 'center' }}>
       <IconButton
         size="large"
         aria-label="account of current user"
@@ -71,16 +92,17 @@ const ProfileMenu: React.FC = () => {
         id="menu-appbar"
         anchorEl={anchorEl}
         anchorOrigin={{
-          vertical: 'bottom',
+          vertical: 'top',
           horizontal: 'right',
         }}
         keepMounted
         transformOrigin={{
           vertical: 'top',
-          horizontal: 'right',
+          horizontal: 'left',
         }}
         open={Boolean(anchorEl)}
         onClose={handleClose}
+        sx={{ ml: 1 }}
       >
         <Box sx={{ px: 2, py: 1 }}>
           <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
@@ -111,6 +133,23 @@ const ProfileMenu: React.FC = () => {
           <ListItemText>Logout</ListItemText>
         </MenuItem>
       </Menu>
+
+      <StyledDialog
+        open={profileOpen}
+        onClose={handleProfileClose}
+        fullWidth
+        maxWidth="lg"
+      >
+        <DialogContent sx={{ position: 'relative', p: 0 }}>
+          <IconButton 
+            onClick={handleProfileClose} 
+            sx={{ position: 'absolute', top: 8, right: 8, color: 'white', zIndex: 1 }}
+          >
+            <CloseIcon />
+          </IconButton>
+          <FuturisticProfile user={user} onUpdateUser={updateUser} />
+        </DialogContent>
+      </StyledDialog>
     </Box>
   );
 };

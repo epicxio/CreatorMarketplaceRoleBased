@@ -35,8 +35,19 @@ const MenuButton = styled(Button)(({ theme }) => ({
   },
 }));
 
+interface SubMenuItem {
+  title: string;
+  path: string;
+  icon?: React.ReactNode;
+  resource: string;
+}
+
 interface TopSubMenuProps {
-  activeMenu: any;
+  activeMenu: {
+    title: string;
+    icon?: React.ReactNode;
+    children?: SubMenuItem[];
+  } | null;
 }
 
 const TopSubMenu: React.FC<TopSubMenuProps> = ({ activeMenu }) => {
@@ -55,7 +66,7 @@ const TopSubMenu: React.FC<TopSubMenuProps> = ({ activeMenu }) => {
       </MenuTitle>
       <Divider orientation="vertical" flexItem sx={{ mr: 2 }} />
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        {activeMenu.children.map((item: any) => (
+        {activeMenu.children.map((item) => (
           <MenuButton
             key={item.path}
             startIcon={item.icon}

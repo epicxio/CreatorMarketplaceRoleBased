@@ -50,6 +50,9 @@ import {
 } from '@mui/icons-material';
 import roleService, { Role, CreateRoleData, Permission } from '../../services/roleService';
 import userService, { User } from '../../services/userService';
+import { permissionResources, PermissionResource } from '../../config/permissions';
+import { permissionActions } from '../../config/permissions';
+import { useAuth } from '../../context/AuthContext';
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(3),
@@ -69,20 +72,10 @@ const userTypeIcons: { [key: string]: React.ReactElement } = {
     superadmin: <ShieldOutlined color="primary" />,
 };
 
-const permissionIcons: { [key: string]: React.ReactElement } = {
-    User: <PersonOutline />,
-    Role: <SecurityIcon />,
-    Content: <ArticleOutlined />,
-    Campaign: <CampaignOutlined />,
-    Brand: <StorefrontOutlined />,
-    Creator: <StarOutline />,
-    Analytics: <AnalyticsOutlined />,
-    'Roles & Permissions': <SecurityIcon />,
-    'User Types': <PersonOutline />,
-    'Permission Management': <SecurityIcon />,
-    'Access Control': <SecurityIcon />,
-    'Audit Logs': <AnalyticsOutlined />,
-};
+const permissionIcons = permissionResources.reduce((acc, resource) => {
+  acc[resource.name] = <resource.IconComponent />;
+  return acc;
+}, {} as Record<string, React.ReactElement>);
 
 const actionIcons: { [key: string]: React.ReactElement } = {
   Create: <AddCircleOutline color="success" />,
@@ -108,6 +101,9 @@ const RoleManagement: React.FC = () => {
     userTypes: [],
     assignedUsers: []
   });
+
+  const { user } = useAuth();
+  const isSuperAdmin = user && (user.role?.name === 'Super Admin' || user.role?.name === 'superadmin');
 
   useEffect(() => {
     fetchData();
@@ -220,6 +216,192 @@ const RoleManagement: React.FC = () => {
   
   const usersToDisplay = users.filter(user => user.userType && formData.userTypes.includes(user.userType.name));
 
+  function renderSimplePermissionView() {
+    return (
+      <Box sx={{ maxHeight: 400, overflow: 'auto' }}>
+        {permissionResources.map((mainMenu) => (
+          <Box key={mainMenu.name} sx={{ mb: 3 }}>
+            {/* Main Menu Header with Permission Toggles */}
+            <Paper
+              variant="outlined"
+              sx={{
+                p: 2,
+                mb: 1,
+                backgroundColor: 'rgba(25, 118, 210, 0.08)',
+                borderLeft: '4px solid #1976d2',
+                borderRadius: '8px',
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'space-between' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <mainMenu.IconComponent color="primary" />
+                  <Typography variant="h6" sx={{ fontWeight: 600, color: '#1976d2' }}>
+                    {mainMenu.name}
+                  </Typography>
+                  {mainMenu.path && (
+                    <Typography variant="caption" sx={{ color: 'text.secondary', ml: 1 }}>
+                      {mainMenu.path}
+                    </Typography>
+                  )}
+                </Box>
+                {/* Main Menu Permission Toggles */}
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                  {permissionActions.map((action) => {
+                    const perm = availablePermissions.find(
+                      p => p.resource === mainMenu.name && p.action === action
+                    );
+                    if (perm) {
+                      return (
+                        <FormControlLabel
+                          key={action}
+                          control={
+                            <Switch
+                              size="small"
+                              checked={formData.permissions.includes(perm._id)}
+                              onChange={() => handlePermissionChange(perm._id)}
+                            />
+                          }
+                          label={
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                              {actionIcons[action]}
+                              <Typography variant="caption">{action}</Typography>
+                            </Box>
+                          }
+                          labelPlacement="end"
+                          sx={{
+                            ml: 0,
+                            mr: 1,
+                            '& .MuiFormControlLabel-label': {
+                              fontSize: '0.75rem',
+                              color: 'text.secondary'
+                            }
+                          }}
+                        />
+                      );
+                    } else if (isSuperAdmin) {
+                      return (
+                        <Tooltip key={action} title="Permission not defined in backend (will not be saved)">
+                          <span>
+                            <FormControlLabel
+                              control={<Switch size="small" checked={false} disabled />}
+                              label={
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                  {actionIcons[action]}
+                                  <Typography variant="caption">{action}</Typography>
+                                </Box>
+                              }
+                              labelPlacement="end"
+                              sx={{ ml: 0, mr: 1, '& .MuiFormControlLabel-label': { fontSize: '0.75rem', color: 'text.secondary' } }}
+                            />
+                          </span>
+                        </Tooltip>
+                      );
+                    }
+                    return null;
+                  })}
+                </Box>
+              </Box>
+            </Paper>
+
+            {/* Sub Menu Items */}
+            {mainMenu.children && mainMenu.children.length > 0 && (
+              <Box sx={{ pl: 3 }}>
+                {mainMenu.children.map((subMenu) => (
+                  <Paper
+                    key={subMenu.name}
+                    variant="outlined"
+                    sx={{
+                      p: 2,
+                      mb: 1,
+                      backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                      borderLeft: '3px solid #666',
+                      borderRadius: '8px',
+                      '&:hover': {
+                        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                      },
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <subMenu.IconComponent color="action" />
+                        <Box>
+                          <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
+                            {subMenu.name}
+                          </Typography>
+                          {subMenu.path && (
+                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                              {subMenu.path}
+                            </Typography>
+                          )}
+                        </Box>
+                      </Box>
+                      {/* Permission Actions */}
+                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                        {permissionActions.map((action) => {
+                          const perm = availablePermissions.find(
+                            p => p.resource === subMenu.name && p.action === action
+                          );
+                          if (perm) {
+                            return (
+                              <FormControlLabel
+                                key={action}
+                                control={
+                                  <Switch
+                                    size="small"
+                                    checked={formData.permissions.includes(perm._id)}
+                                    onChange={() => handlePermissionChange(perm._id)}
+                                  />
+                                }
+                                label={
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                    {actionIcons[action]}
+                                    <Typography variant="caption">{action}</Typography>
+                                  </Box>
+                                }
+                                labelPlacement="end"
+                                sx={{
+                                  ml: 0,
+                                  mr: 1,
+                                  '& .MuiFormControlLabel-label': {
+                                    fontSize: '0.75rem',
+                                    color: 'text.secondary'
+                                  }
+                                }}
+                              />
+                            );
+                          } else if (isSuperAdmin) {
+                            return (
+                              <Tooltip key={action} title="Permission not defined in backend (will not be saved)">
+                                <span>
+                                  <FormControlLabel
+                                    control={<Switch size="small" checked={false} disabled />}
+                                    label={
+                                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                        {actionIcons[action]}
+                                        <Typography variant="caption">{action}</Typography>
+                                      </Box>
+                                    }
+                                    labelPlacement="end"
+                                    sx={{ ml: 0, mr: 1, '& .MuiFormControlLabel-label': { fontSize: '0.75rem', color: 'text.secondary' } }}
+                                  />
+                                </span>
+                              </Tooltip>
+                            );
+                          }
+                          return null;
+                        })}
+                      </Box>
+                    </Box>
+                  </Paper>
+                ))}
+              </Box>
+            )}
+          </Box>
+        ))}
+      </Box>
+    );
+  }
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
@@ -314,45 +496,41 @@ const RoleManagement: React.FC = () => {
             <Grid item xs={12}><TextField fullWidth label="Description" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} multiline rows={3} required /></Grid>
             <Grid item xs={12}>
               <Typography variant="subtitle1" gutterBottom sx={{ mt: 2 }}>Permissions</Typography>
-              {Object.entries(groupedPermissions).sort(([a], [b]) => a.localeCompare(b)).map(([resource, perms]) => (
-                <Accordion key={resource}>
-                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                      {permissionIcons[resource] || <SecurityIcon color="primary" />}
-                      <Typography>{resource.charAt(0).toUpperCase() + resource.slice(1)}</Typography>
-                    </Box>
-                  </AccordionSummary>
-                  <AccordionDetails sx={{ p: 1 }}>
-                    <FormGroup>
-                      {perms.map(permission => (
-                        <FormControlLabel
-                          key={permission._id}
-                          sx={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            width: '100%',
-                            py: 0.5,
-                            mx: 0,
-                          }}
-                          label={
-                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                              {actionIcons[permission.action] || <SecurityIcon fontSize="small" />}
-                              <Typography sx={{ ml: 1.5 }}>{permission.action}</Typography>
-                            </Box>
-                          }
-                          labelPlacement="start"
-                          control={
-                            <Switch
-                              checked={formData.permissions.includes(permission._id)}
-                              onChange={() => handlePermissionChange(permission._id)}
-                            />
-                          }
-                        />
-                      ))}
-                    </FormGroup>
-                  </AccordionDetails>
-                </Accordion>
-              ))}
+              
+              {/* Legend */}
+              <Paper variant="outlined" sx={{ p: 2, mb: 2, backgroundColor: 'rgba(255, 255, 255, 0.02)' }}>
+                <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600, color: '#1976d2' }}>
+                  Permission Structure
+                </Typography>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Box sx={{ width: 20, height: 20, backgroundColor: 'rgba(25, 118, 210, 0.08)', borderLeft: '4px solid #1976d2' }} />
+                    <Typography variant="caption">Main Menu</Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Box sx={{ width: 20, height: 20, backgroundColor: 'rgba(255, 255, 255, 0.02)', borderLeft: '3px solid #666' }} />
+                    <Typography variant="caption">Sub Menu</Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <VisibilityOutlined color="info" sx={{ fontSize: 16 }} />
+                    <Typography variant="caption">View</Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <AddCircleOutline color="success" sx={{ fontSize: 16 }} />
+                    <Typography variant="caption">Create</Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <EditOutlined color="warning" sx={{ fontSize: 16 }} />
+                    <Typography variant="caption">Edit</Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <DeleteOutline color="error" sx={{ fontSize: 16 }} />
+                    <Typography variant="caption">Delete</Typography>
+                  </Box>
+                </Box>
+              </Paper>
+              
+              {renderSimplePermissionView()}
             </Grid>
             <Grid item xs={12}>
               <Typography variant="subtitle1" gutterBottom sx={{ mt: 2 }}>User Types</Typography>
