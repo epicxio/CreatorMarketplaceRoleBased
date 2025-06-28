@@ -40,4 +40,8 @@ export const menuHierarchy = [
         resource: 'Analytics',
         path: '/analytics',
     },
+    {
+        resource: 'KYC',
+        path: '/kyc',
+    },
 ]; 

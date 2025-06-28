@@ -20,6 +20,7 @@ const permissionResources = [
   { name: 'Content' },
   { name: 'Campaign' },
   { name: 'Analytics' },
+  { name: 'KYC' },
 ];
 
 const actions = ['View', 'Create', 'Edit', 'Delete'];

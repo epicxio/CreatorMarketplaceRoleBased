@@ -24,6 +24,8 @@ import { AvatarSelectionModal } from '../common/AvatarSelectionModal';
 import { CameraCaptureModal } from '../common/CameraCaptureModal';
 import { AvatarChoiceModal } from '../common/AvatarChoiceModal';
 import { User } from '../../services/userService';
+import api from '../../services/api';
+import LinearProgress from '@mui/material/LinearProgress';
 
 const FuturisticBox = styled(motion.div)`
   background: rgba(255, 255, 255, 0.1);
@@ -156,10 +158,18 @@ const FuturisticProfile: React.FC<FuturisticProfileProps> = ({ user, onUpdateUse
   const [cameraModalOpen, setCameraModalOpen] = useState(false);
   const [choiceModalOpen, setChoiceModalOpen] = useState(false);
   const [initialAvatarTab, setInitialAvatarTab] = useState(0);
+  const [kyc, setKyc] = useState<any>(null);
 
   useEffect(() => {
     setEditedUser(user);
   }, [user]);
+
+  useEffect(() => {
+    // Fetch KYC profile data
+    api.get('/kyc/profile')
+      .then(res => setKyc(res.data.data))
+      .catch(() => setKyc(null));
+  }, []);
 
   const handleEditToggle = async () => {
     if (isEditing) {
@@ -284,6 +294,44 @@ const FuturisticProfile: React.FC<FuturisticProfileProps> = ({ user, onUpdateUse
           }}
         />
       </ProfileHeader>
+
+      {/* KYC Section */}
+      {kyc && (
+        <Grid container spacing={3} sx={{ mb: 4 }}>
+          <Grid item xs={12} md={4}>
+            <FuturisticBox>
+              <Typography variant="subtitle2" sx={{ color: '#bdbdbd' }}>KYC Progress</Typography>
+              <LinearProgress
+                variant="determinate"
+                value={kyc.percentUploaded}
+                sx={{ height: 10, borderRadius: 5, my: 1, background: '#222', '& .MuiLinearProgress-bar': { background: '#6C63FF' } }}
+              />
+              <Typography variant="body2" sx={{ color: '#fff' }}>
+                {kyc.uploadedCount} of {kyc.requiredCount} documents uploaded
+              </Typography>
+              <Typography variant="body2" sx={{ color: '#bdbdbd' }}>
+                {kyc.approvedCount} of {kyc.requiredCount} documents approved
+              </Typography>
+            </FuturisticBox>
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <FuturisticBox>
+              <Typography variant="subtitle2" sx={{ color: '#bdbdbd' }}>PAN Card Number</Typography>
+              <Typography variant="body1" sx={{ color: '#fff' }}>
+                {kyc.panCardNumber || 'Not Provided'}
+              </Typography>
+            </FuturisticBox>
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <FuturisticBox>
+              <Typography variant="subtitle2" sx={{ color: '#bdbdbd' }}>Aadhar Card Number</Typography>
+              <Typography variant="body1" sx={{ color: '#fff' }}>
+                {kyc.aadharCardNumber || 'Not Provided'}
+              </Typography>
+            </FuturisticBox>
+          </Grid>
+        </Grid>
+      )}
 
       <Grid container spacing={4}>
         <Grid item xs={12} md={6}>

@@ -11,6 +11,7 @@ import {
   LockOpenOutlined,
   HistoryOutlined,
   GroupWorkOutlined,
+  VerifiedUserOutlined,
 } from '@mui/icons-material';
 
 export interface PermissionResource {
@@ -96,6 +97,11 @@ export const permissionResources: PermissionResource[] = [
     name: 'Analytics',
     IconComponent: AnalyticsOutlined,
     path: '/analytics',
+  },
+  {
+    name: 'KYC',
+    IconComponent: VerifiedUserOutlined,
+    path: '/kyc',
   },
 ];
 

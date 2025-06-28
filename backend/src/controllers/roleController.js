@@ -11,6 +11,28 @@ const getUserTypes = async (req, res) => {
     }
 };
 
+function isErrorWithMessage(error) {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'message' in error &&
+    typeof error.message === 'string'
+  );
+}
+
+function toErrorWithMessage(maybeError) {
+  if (isErrorWithMessage(maybeError)) return maybeError;
+  try {
+    return new Error(JSON.stringify(maybeError));
+  } catch {
+    return new Error(String(maybeError));
+  }
+}
+
+function getErrorMessage(error) {
+  return toErrorWithMessage(error).message;
+}
+
 const createRole = async (req, res) => {
   try {
     const { name, description, permissions, userTypes, assignedUsers } = req.body;
@@ -31,7 +53,7 @@ const createRole = async (req, res) => {
     const newRole = await Role.findById(role._id).populate('permissions');
     res.status(201).json(newRole);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    res.status(400).json({ message: getErrorMessage(error) });
   }
 };
 
@@ -40,7 +62,7 @@ const getRoles = async (req, res) => {
     const roles = await Role.find({ isActive: true }).populate('permissions');
     res.json(roles);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: getErrorMessage(error) });
   }
 };
 
@@ -53,7 +75,7 @@ const getRole = async (req, res) => {
     }
     res.json(role);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: getErrorMessage(error) });
   }
 };
 
@@ -81,7 +103,7 @@ const updateRole = async (req, res) => {
 
     res.json(role);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    res.status(400).json({ message: getErrorMessage(error) });
   }
 };
 
@@ -107,7 +129,7 @@ const deleteRole = async (req, res) => {
     
     res.json({ message: 'Role deleted successfully' });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: getErrorMessage(error) });
   }
 };
 
@@ -147,6 +169,38 @@ const syncUserRoles = async (roleId, newAssignedUsers, previousAssignedUsers) =>
   }
 };
 
+const addPermission = async (req, res) => {
+  try {
+    const { resource, actions } = req.body;
+    const role = await Role.findById(req.params.id);
+    if (!role) {
+      res.status(404).json({ message: 'Role not found' });
+      return;
+    }
+    role.permissions.push({ resource, actions });
+    await role.save();
+    res.json(role);
+  } catch (error) {
+    res.status(400).json({ message: getErrorMessage(error) });
+  }
+};
+
+const removePermission = async (req, res) => {
+  try {
+    const { resource } = req.body;
+    const role = await Role.findById(req.params.id);
+    if (!role) {
+      res.status(404).json({ message: 'Role not found' });
+      return;
+    }
+    role.permissions = role.permissions.filter(p => p.resource !== resource);
+    await role.save();
+    res.json(role);
+  } catch (error) {
+    res.status(400).json({ message: getErrorMessage(error) });
+  }
+};
+
 module.exports = {
   createRole,
   getRoles,
@@ -154,4 +208,6 @@ module.exports = {
   updateRole,
   deleteRole,
   getUserTypes,
+  addPermission,
+  removePermission
 }; 

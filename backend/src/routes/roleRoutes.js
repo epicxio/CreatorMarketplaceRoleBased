@@ -1,24 +1,17 @@
 const express = require('express');
-const { body, validationResult } = require('express-validator');
+const { body } = require('express-validator');
 const {
   createRole,
   getRoles,
   getRole,
   updateRole,
   deleteRole,
-  getUserTypes,
+  addPermission,
+  removePermission
 } = require('../controllers/roleController');
+const { validateRequest } = require('../middleware/validateRequest');
 
 const router = express.Router();
-
-// Validation middleware
-const validateRequest = (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
-  }
-  next();
-};
 
 // Validation rules
 const roleValidation = [
@@ -36,17 +29,41 @@ const roleValidation = [
     .isArray()
     .withMessage('Permissions must be an array')
     .optional(),
-  body('permissions.*')
-    .isMongoId()
-    .withMessage('Each permission must be a valid MongoDB ObjectId'),
+  body('permissions.*.resource')
+    .trim()
+    .notEmpty()
+    .withMessage('Resource name is required for each permission'),
+  body('permissions.*.actions')
+    .isArray()
+    .withMessage('Actions must be an array')
+    .notEmpty()
+    .withMessage('At least one action is required'),
 ];
 
+const permissionValidation = [
+  body('resource')
+    .trim()
+    .notEmpty()
+    .withMessage('Resource name is required'),
+  body('actions')
+    .isArray()
+    .withMessage('Actions must be an array')
+    .notEmpty()
+    .withMessage('At least one action is required'),
+];
+
+// Async handler for Express
+const asyncHandler = fn => (req, res, next) => {
+  Promise.resolve(fn(req, res, next)).catch(next);
+};
+
 // Routes
-router.get('/user-types', getUserTypes);
-router.post('/', roleValidation, validateRequest, createRole);
-router.get('/', getRoles);
-router.get('/:id', getRole);
-router.put('/:id', roleValidation, validateRequest, updateRole);
-router.delete('/:id', deleteRole);
+router.post('/', roleValidation, validateRequest, asyncHandler(createRole));
+router.get('/', asyncHandler(getRoles));
+router.get('/:id', asyncHandler(getRole));
+router.put('/:id', roleValidation, validateRequest, asyncHandler(updateRole));
+router.delete('/:id', asyncHandler(deleteRole));
+router.post('/:id/permissions', permissionValidation, validateRequest, asyncHandler(addPermission));
+router.delete('/:id/permissions', asyncHandler(removePermission));
 
 module.exports = router; 

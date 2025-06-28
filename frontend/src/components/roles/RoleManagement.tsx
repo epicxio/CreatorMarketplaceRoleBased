@@ -233,16 +233,16 @@ const RoleManagement: React.FC = () => {
               }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'space-between' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <mainMenu.IconComponent color="primary" />
-                  <Typography variant="h6" sx={{ fontWeight: 600, color: '#1976d2' }}>
-                    {mainMenu.name}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <mainMenu.IconComponent color="primary" />
+                <Typography variant="h6" sx={{ fontWeight: 600, color: '#1976d2' }}>
+                  {mainMenu.name}
+                </Typography>
+                {mainMenu.path && (
+                  <Typography variant="caption" sx={{ color: 'text.secondary', ml: 1 }}>
+                    {mainMenu.path}
                   </Typography>
-                  {mainMenu.path && (
-                    <Typography variant="caption" sx={{ color: 'text.secondary', ml: 1 }}>
-                      {mainMenu.path}
-                    </Typography>
-                  )}
+                )}
                 </Box>
                 {/* Main Menu Permission Toggles */}
                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
@@ -359,8 +359,8 @@ const RoleManagement: React.FC = () => {
                                   </Box>
                                 }
                                 labelPlacement="end"
-                                sx={{
-                                  ml: 0,
+                                sx={{ 
+                                  ml: 0, 
                                   mr: 1,
                                   '& .MuiFormControlLabel-label': {
                                     fontSize: '0.75rem',

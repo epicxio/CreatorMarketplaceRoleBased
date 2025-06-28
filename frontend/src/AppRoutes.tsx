@@ -16,6 +16,7 @@ import Creator from './components/academic/Creator';
 import AccountManagement from './components/academic/AccountManagement';
 import BrandManagement from './components/brand/BrandManagement';
 import CreatorProfile from './components/academic/CreatorProfile';
+import KYCPage from './components/kyc/KYCPage';
 
 export const AppRoutes: React.FC = () => {
   return (
@@ -69,6 +70,9 @@ export const AppRoutes: React.FC = () => {
 
         {/* Creator Profile Route */}
         <Route path="/creators/:id" element={<CreatorProfile />} />
+
+        {/* KYC Route */}
+        <Route path="/kyc" element={<KYCPage />} />
       </Route>
 
       {/* Catch all route */}
