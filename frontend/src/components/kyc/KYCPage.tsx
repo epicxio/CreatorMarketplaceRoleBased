@@ -1118,6 +1118,7 @@ const KYCPage: React.FC = () => {
                       <IconButton
                         size="small"
                         onClick={() => handleEditDocument(doc.id)}
+                        disabled={doc.status === 'verified'}
                       >
                         <EditIcon />
                       </IconButton>
@@ -1127,6 +1128,7 @@ const KYCPage: React.FC = () => {
                         size="small"
                         color="error"
                         onClick={() => handleDeleteDocument(doc.id)}
+                        disabled={doc.status === 'verified'}
                       >
                         <DeleteIcon />
                       </IconButton>
@@ -1183,6 +1185,13 @@ const KYCPage: React.FC = () => {
                   sx={{ ml: 1 }}
                 />
               </Typography>
+              {previewDialog.document.status === 'rejected' && previewDialog.document.remarks && (
+                <Box sx={{ mb: 2 }}>
+                  <Alert severity="error" sx={{ fontWeight: 600 }}>
+                    <strong>Rejection Reason:</strong> {previewDialog.document.remarks}
+                  </Alert>
+                </Box>
+              )}
               <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.100', borderRadius: 1, textAlign: 'center' }}>
                 {previewUrl === null && (
                   <Typography variant="body2" color="text.secondary">

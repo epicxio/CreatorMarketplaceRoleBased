@@ -69,7 +69,9 @@ console.log('Available kycController methods:', Object.keys(getKycController()))
   'updateKYCProfileStatus',
   'exportKYCData',
   'bulkVerifyDocuments',
-  'downloadDocument'
+  'downloadDocument',
+  'saveDraftComment',
+  'getDraftHistory'
 ].forEach(fn => {
   if (typeof getKycController()[fn] !== 'function') {
     console.error(`KYC Controller method missing or not a function: ${fn}`);
@@ -167,6 +169,12 @@ router.post('/admin/bulk-verify',
 // File download route (protected)
 // GET /api/kyc/documents/:documentId/download - Download document file
 router.get('/documents/:documentId/download', auth, asyncHandler(getKycController().downloadDocument));
+
+// Save a draft comment to reviewDraftHistory
+router.post('/documents/:documentId/draft', auth, asyncHandler(getKycController().saveDraftComment));
+
+// Get all draft comments for a document
+router.get('/documents/:documentId/draft-history', auth, asyncHandler(getKycController().getDraftHistory));
 
 // Health check route
 router.get('/health', (req, res) => {

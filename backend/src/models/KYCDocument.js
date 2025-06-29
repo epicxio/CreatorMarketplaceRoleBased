@@ -79,6 +79,15 @@ const kycDocumentSchema = new mongoose.Schema({
     trim: true
   },
 
+  // Draft comments history (array of objects)
+  reviewDraftHistory: [
+    {
+      comment: { type: String, trim: true },
+      createdAt: { type: Date, default: Date.now },
+      reviewer: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
+    }
+  ],
+
   // Document expiry (if applicable)
   expiryDate: {
     type: Date

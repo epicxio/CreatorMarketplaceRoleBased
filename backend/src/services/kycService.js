@@ -457,6 +457,36 @@ class KYCService {
       mimeType: doc.mimeType,
     };
   }
+
+  // Save a draft comment to reviewDraftHistory
+  async saveDraftComment(documentId, reviewerId, comment) {
+    try {
+      const doc = await KYCDocument.findById(documentId);
+      if (!doc) throw new Error('Document not found');
+      doc.reviewDraftHistory.push({
+        comment,
+        reviewer: reviewerId,
+        createdAt: new Date()
+      });
+      await doc.save();
+      return doc.reviewDraftHistory;
+    } catch (error) {
+      console.error('Error saving draft comment:', error);
+      throw new Error(`Failed to save draft comment: ${error.message}`);
+    }
+  }
+
+  // Get all draft comments for a document
+  async getDraftHistory(documentId) {
+    try {
+      const doc = await KYCDocument.findById(documentId).populate('reviewDraftHistory.reviewer', 'name email');
+      if (!doc) throw new Error('Document not found');
+      return doc.reviewDraftHistory;
+    } catch (error) {
+      console.error('Error fetching draft history:', error);
+      throw new Error(`Failed to fetch draft history: ${error.message}`);
+    }
+  }
 }
 
 module.exports = new KYCService(); 

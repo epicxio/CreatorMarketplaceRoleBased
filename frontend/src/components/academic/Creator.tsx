@@ -52,6 +52,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
+import CreatorKYCRequests from './CreatorKYCRequests';
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(3),
@@ -832,4 +833,11 @@ const CreatorDialog: React.FC<CreatorDialogProps> = ({
   );
 };
 
-export default Creator; 
+export default function CreatorManagementWithKYC() {
+  return (
+    <>
+      <Creator />
+      <CreatorKYCRequests />
+    </>
+  );
+} 

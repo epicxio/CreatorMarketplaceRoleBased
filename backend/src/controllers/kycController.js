@@ -383,6 +383,35 @@ class KYCController {
       res.status(404).json({ success: false, message: error.message });
     }
   }
+
+  // Save a draft comment to reviewDraftHistory
+  async saveDraftComment(req, res) {
+    try {
+      const { documentId } = req.params;
+      const { comment } = req.body;
+      const reviewer = req.user.id;
+      if (!comment || !comment.trim()) {
+        return res.status(400).json({ success: false, message: 'Comment is required.' });
+      }
+      const history = await kycService.saveDraftComment(documentId, reviewer, comment);
+      res.json({ success: true, message: 'Draft comment saved.', data: history });
+    } catch (error) {
+      console.error('Error saving draft comment:', error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  // Get all draft comments for a document
+  async getDraftHistory(req, res) {
+    try {
+      const { documentId } = req.params;
+      const history = await kycService.getDraftHistory(documentId);
+      res.json({ success: true, data: history });
+    } catch (error) {
+      console.error('Error fetching draft history:', error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
 }
 
 module.exports = new KYCController(); 
