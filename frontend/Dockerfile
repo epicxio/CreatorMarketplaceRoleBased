@@ -31,7 +31,7 @@ COPY . .
 RUN npm run build
 
 # Remove development dependencies
-RUN npm prune --omit=dev
+RUN npm prune --omit=dev --legacy-peer-deps
 
 
 # Final stage for app image
@@ -45,4 +45,5 @@ COPY --from=build /app /app
 
 # Start the server by default, this can be overwritten at runtime
 EXPOSE 3000
-CMD ["serve", "-s", "build", "-l", "3000"]
+CMD ["serve", "-s", "build"]
+

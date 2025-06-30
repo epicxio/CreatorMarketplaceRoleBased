@@ -15,7 +15,22 @@ import {
 } from '@mui/material';
 import { Close as CloseIcon, CloudUpload as CloudUploadIcon } from '@mui/icons-material';
 
-const importAll = (r: { keys: () => string[]; (key: string): string }): string[] => r.keys().map(r);
+/* 🔧 Declare webpack's require.context manually */
+declare global {
+  namespace NodeJS {
+    interface Require {
+      context: (directory: string, useSubdirectories?: boolean, regExp?: RegExp) => {
+        keys: () => string[];
+        (id: string): string;
+      };
+    }
+  }
+}
+declare const require: NodeJS.Require;
+/* 🔧 End Fix */
+
+const importAll = (r: ReturnType<typeof require.context>): string[] =>
+  r.keys().map((key) => r(key) as string);
 
 const beautifulAvatars = importAll(require.context('../../assets/images/avatars/beautiful', false, /\.(svg)$/));
 const animalAvatars = importAll(require.context('../../assets/images/avatars/animals', false, /\.(svg)$/));
@@ -36,7 +51,7 @@ const AvatarContainer = styled(Box)`
   cursor: pointer;
   border-radius: 50%;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
-  
+
   &:hover {
     transform: scale(1.1);
     box-shadow: 0 0 20px rgba(108, 99, 255, 0.7);
@@ -76,7 +91,6 @@ function TabPanel(props: TabPanelProps) {
   );
 }
 
-
 export const AvatarSelectionModal: React.FC<AvatarSelectionModalProps> = ({ open, onClose, onSelectAvatar, initialTab = 0 }) => {
   const [selectedTab, setSelectedTab] = useState(initialTab);
 
@@ -89,7 +103,7 @@ export const AvatarSelectionModal: React.FC<AvatarSelectionModalProps> = ({ open
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setSelectedTab(newValue);
   };
-  
+
   const handleSelect = (url: string) => {
     onSelectAvatar(url);
     onClose();
@@ -97,14 +111,14 @@ export const AvatarSelectionModal: React.FC<AvatarSelectionModalProps> = ({ open
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            if (e.target && typeof e.target.result === 'string') {
-                onSelectAvatar(e.target.result);
-                onClose();
-            }
-        };
-        reader.readAsDataURL(event.target.files[0]);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        if (e.target && typeof e.target.result === 'string') {
+          onSelectAvatar(e.target.result);
+          onClose();
+        }
+      };
+      reader.readAsDataURL(event.target.files[0]);
     }
   };
 
@@ -137,59 +151,63 @@ export const AvatarSelectionModal: React.FC<AvatarSelectionModalProps> = ({ open
           <CloseIcon />
         </IconButton>
       </DialogTitle>
-      <DialogContent sx={{ p:0 }}>
+      <DialogContent sx={{ p: 0 }}>
         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-            <Tabs value={selectedTab} onChange={handleTabChange} centered variant="fullWidth"
-              sx={{
-                '& .MuiTabs-indicator': { backgroundColor: '#6C63FF' },
-                '& .MuiTab-root': { color: 'rgba(255, 255, 255, 0.7)' },
-                '& .Mui-selected': { color: '#fff' }
-              }}
-            >
-                <Tab label="Beautiful" />
-                <Tab label="Animals" />
-                <Tab label="Cartoons" />
-                <Tab label="Gen Z" />
-                <Tab label="Upload" />
-            </Tabs>
+          <Tabs
+            value={selectedTab}
+            onChange={handleTabChange}
+            centered
+            variant="fullWidth"
+            sx={{
+              '& .MuiTabs-indicator': { backgroundColor: '#6C63FF' },
+              '& .MuiTab-root': { color: 'rgba(255, 255, 255, 0.7)' },
+              '& .Mui-selected': { color: '#fff' },
+            }}
+          >
+            <Tab label="Beautiful" />
+            <Tab label="Animals" />
+            <Tab label="Cartoons" />
+            <Tab label="Gen Z" />
+            <Tab label="Upload" />
+          </Tabs>
         </Box>
         <TabPanel value={selectedTab} index={0}>
-            {renderAvatarGrid(beautifulAvatars)}
+          {renderAvatarGrid(beautifulAvatars)}
         </TabPanel>
         <TabPanel value={selectedTab} index={1}>
-            {renderAvatarGrid(animalAvatars)}
+          {renderAvatarGrid(animalAvatars)}
         </TabPanel>
         <TabPanel value={selectedTab} index={2}>
-            {renderAvatarGrid(cartoonAvatars)}
+          {renderAvatarGrid(cartoonAvatars)}
         </TabPanel>
         <TabPanel value={selectedTab} index={3}>
-            {renderAvatarGrid(genZCartoonsAvatars)}
+          {renderAvatarGrid(genZCartoonsAvatars)}
         </TabPanel>
         <TabPanel value={selectedTab} index={4}>
-            <Box sx={{ textAlign: 'center', py: 4 }}>
-                <input
-                    accept="image/*"
-                    style={{ display: 'none' }}
-                    id="avatar-upload-file"
-                    type="file"
-                    onChange={handleFileSelect}
-                />
-                <label htmlFor="avatar-upload-file">
-                    <Button 
-                      variant="contained" 
-                      component="span" 
-                      startIcon={<CloudUploadIcon />}
-                      sx={{ background: '#6C63FF', '&:hover': { background: '#5A52D9' } }}
-                    >
-                        Upload from your device
-                    </Button>
-                </label>
-                <Typography variant="body2" sx={{ mt: 2, opacity: 0.7 }}>
-                    Or drag and drop an image here.
-                </Typography>
-            </Box>
+          <Box sx={{ textAlign: 'center', py: 4 }}>
+            <input
+              accept="image/*"
+              style={{ display: 'none' }}
+              id="avatar-upload-file"
+              type="file"
+              onChange={handleFileSelect}
+            />
+            <label htmlFor="avatar-upload-file">
+              <Button
+                variant="contained"
+                component="span"
+                startIcon={<CloudUploadIcon />}
+                sx={{ background: '#6C63FF', '&:hover': { background: '#5A52D9' } }}
+              >
+                Upload from your device
+              </Button>
+            </label>
+            <Typography variant="body2" sx={{ mt: 2, opacity: 0.7 }}>
+              Or drag and drop an image here.
+            </Typography>
+          </Box>
         </TabPanel>
       </DialogContent>
     </StyledDialog>
   );
-}; 
+};

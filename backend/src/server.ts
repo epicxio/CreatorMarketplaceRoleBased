@@ -47,7 +47,7 @@ app.get('/', (req: Request, res: Response) => {
   res.json({ message: 'Welcome to Creator Marketplace API' });
 });
 
-const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
+const errorHandler: ErrorRequestHandler = (err: any, req: Request, res: Response, next: NextFunction) => {
   console.error(err.stack);
   res.status(500).json({ message: 'Something went wrong!' });
 };
@@ -63,6 +63,6 @@ mongoose.connection.once('open', () => {
   });
 });
 
-mongoose.connection.on('error', err => {
+mongoose.connection.on('error', (err: any) => {
   console.error('MongoDB connection error:', err);
 }); 
