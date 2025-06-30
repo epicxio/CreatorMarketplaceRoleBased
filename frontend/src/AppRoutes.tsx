@@ -12,6 +12,7 @@ import StudentCourseAllocation from './components/academic/StudentCourseAllocati
 import CorporateDashboard from './components/corporate/CorporateDashboard';
 import RoleManagement from './components/roles/RoleManagement';
 import UserTypeManagement from './components/roles/UserTypeManagement';
+import NotificationControlCenter from './components/notifications/NotificationControlCenter';
 import Creator from './components/academic/Creator';
 import AccountManagement from './components/academic/AccountManagement';
 import BrandManagement from './components/brand/BrandManagement';
@@ -62,6 +63,7 @@ export const AppRoutes: React.FC = () => {
         <Route path="/roles-permissions/*">
           <Route path="roles" element={<RoleManagement />} />
           <Route path="user-type" element={<UserTypeManagement />} />
+          <Route path="notifications" element={<NotificationControlCenter />} />
           <Route index element={<Navigate to="roles" replace />} />
         </Route>
 

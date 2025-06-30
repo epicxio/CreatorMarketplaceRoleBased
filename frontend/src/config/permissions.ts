@@ -12,6 +12,7 @@ import {
   HistoryOutlined,
   GroupWorkOutlined,
   VerifiedUserOutlined,
+  Notifications as NotificationsIcon,
 } from '@mui/icons-material';
 
 export interface PermissionResource {
@@ -80,6 +81,11 @@ export const permissionResources: PermissionResource[] = [
         name: 'User Type', 
         IconComponent: GroupWorkOutlined,
         path: '/roles-permissions/user-type'
+      },
+      { 
+        name: 'Notification Control Center', 
+        IconComponent: NotificationsIcon,
+        path: '/roles-permissions/notifications'
       },
     ],
   },

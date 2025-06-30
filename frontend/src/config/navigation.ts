@@ -26,6 +26,7 @@ export const menuHierarchy = [
         children: [
             { title: 'Role Management', path: '/roles-permissions/roles', resource: 'Role' },
             { title: 'User Types', path: '/roles-permissions/user-type', resource: 'User Types' },
+            { title: 'Notification Control Center', path: '/roles-permissions/notifications', resource: 'Notification Control Center' },
         ],
     },
     {

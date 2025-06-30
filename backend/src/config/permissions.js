@@ -25,6 +25,7 @@ const permissionResources = [
     children: [
       { name: 'Role Management', path: '/roles-permissions/roles' },
       { name: 'User Type', path: '/roles-permissions/user-type' },
+      { name: 'Notification Control Center', path: '/roles-permissions/notifications' },
     ],
   },
   { name: 'Content', path: '/content' },
@@ -33,6 +34,7 @@ const permissionResources = [
   { name: 'Brand', path: '/corporate-management/brands' },
   { name: 'Role', path: '/roles-permissions/roles' },
   { name: 'User Types', path: '/roles-permissions/user-type' },
+  { name: 'Notification Control Center', path: '/roles-permissions/notifications' },
   { name: 'KYC', path: '/kyc' },
 ];
 

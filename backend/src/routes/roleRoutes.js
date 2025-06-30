@@ -29,15 +29,9 @@ const roleValidation = [
     .isArray()
     .withMessage('Permissions must be an array')
     .optional(),
-  body('permissions.*.resource')
-    .trim()
-    .notEmpty()
-    .withMessage('Resource name is required for each permission'),
-  body('permissions.*.actions')
-    .isArray()
-    .withMessage('Actions must be an array')
-    .notEmpty()
-    .withMessage('At least one action is required'),
+  body('permissions.*')
+    .isString()
+    .withMessage('Each permission must be a string ID'),
 ];
 
 const permissionValidation = [

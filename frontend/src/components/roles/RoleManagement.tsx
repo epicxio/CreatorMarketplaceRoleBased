@@ -97,7 +97,7 @@ const RoleManagement: React.FC = () => {
   const [formData, setFormData] = useState<CreateRoleData>({
     name: '',
     description: '',
-    permissions: [],
+    permissions: [] as string[],
     userTypes: [],
     assignedUsers: []
   });
@@ -201,10 +201,15 @@ const RoleManagement: React.FC = () => {
 
   const handleSaveRole = async () => {
     try {
+      const payload = {
+        ...formData,
+        permissions: formData.permissions, // Send permission IDs directly
+      };
+
       if (selectedRole) {
-        await roleService.updateRole(selectedRole._id, formData);
+        await roleService.updateRole(selectedRole._id, payload);
       } else {
-        await roleService.createRole(formData);
+        await roleService.createRole(payload);
       }
       setOpenDialog(false);
       await fetchData();
