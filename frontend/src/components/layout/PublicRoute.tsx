@@ -1,10 +1,11 @@
 import React from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { Box, CircularProgress } from '@mui/material';
 
 const PublicRoute: React.FC = () => {
   const { isAuthenticated, loading, user } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -17,11 +18,17 @@ const PublicRoute: React.FC = () => {
   // Debug: log the user object to check the role name
   console.log('User object:', user);
 
+  // Only redirect to /get-to-know if coming from / or /login
   if (isAuthenticated) {
-    if (user?.role?.name === 'Creator') {
-      return <Navigate to="/get-to-know" />;
+    if (
+      user?.role?.name === 'Creator' &&
+      (location.pathname === '/' || location.pathname === '/login')
+    ) {
+      return <Navigate to="/get-to-know" replace />;
     }
-    return <Navigate to="/dashboard" />;
+    if (location.pathname === '/' || location.pathname === '/login') {
+      return <Navigate to="/dashboard" replace />;
+    }
   }
 
   return <Outlet />;

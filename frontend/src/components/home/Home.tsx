@@ -334,7 +334,13 @@ export const Home = () => {
       const token = await authService.login(loginFormData.email, loginFormData.password);
       await login(token);
       setLoginDialogOpen(false);
-      navigate('/dashboard');
+      // Fetch user profile to determine role
+      const userProfile = await authService.getProfile();
+      if (userProfile?.role?.name === 'Creator') {
+        navigate('/get-to-know');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err) {
       setError('Invalid email or password');
     }

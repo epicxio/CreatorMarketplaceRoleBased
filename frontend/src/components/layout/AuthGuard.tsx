@@ -20,11 +20,6 @@ const AuthGuard: React.FC = () => {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // If user is Creator and not already on /get-to-know, redirect them
-  if (user?.role?.name === 'Creator' && location.pathname !== '/get-to-know') {
-    return <Navigate to="/get-to-know" replace />;
-  }
-
   return <ProtectedLayout />;
 };
 
