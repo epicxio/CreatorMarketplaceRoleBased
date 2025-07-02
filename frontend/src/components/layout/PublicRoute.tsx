@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { Box, CircularProgress } from '@mui/material';
 
 const PublicRoute: React.FC = () => {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, user } = useAuth();
 
   if (loading) {
     return (
@@ -14,7 +14,17 @@ const PublicRoute: React.FC = () => {
     );
   }
 
-  return isAuthenticated ? <Navigate to="/dashboard" /> : <Outlet />;
+  // Debug: log the user object to check the role name
+  console.log('User object:', user);
+
+  if (isAuthenticated) {
+    if (user?.role?.name === 'Creator') {
+      return <Navigate to="/get-to-know" />;
+    }
+    return <Navigate to="/dashboard" />;
+  }
+
+  return <Outlet />;
 };
 
 export default PublicRoute; 

@@ -15,6 +15,14 @@ const resources = [
   'Permission Management',
   'Access Control',
   'Audit Logs',
+  'Get To Know',
+  'Data Board',
+  'Canvas Creator',
+  'Love',
+  'Revenue Desk',
+  'PromoBoost',
+  'Subscription Center',
+  'Fan Fund & Donations',
 ];
 
 const actions = ['View', 'Create', 'Edit', 'Delete'];

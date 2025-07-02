@@ -94,7 +94,8 @@ router.put('/documents/:documentId', auth, upload.single('document'), handleMult
 router.delete('/documents/:documentId', auth, asyncHandler(getKycController().deleteDocument));
 
 // Admin Routes (require admin permissions)
-// GET /api/kyc/admin/documents - Get all documents for verification
+// GET 
+//  - Get all documents for verification
 router.get('/admin/documents', 
   auth,
   hasPermission('KYC', 'View'), 

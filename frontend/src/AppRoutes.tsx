@@ -18,6 +18,16 @@ import AccountManagement from './components/academic/AccountManagement';
 import BrandManagement from './components/brand/BrandManagement';
 import CreatorProfile from './components/academic/CreatorProfile';
 import KYCPage from './components/kyc/KYCPage';
+import GetToKnow from './pages/GetToKnow';
+
+const GetToKnowPage = () => <div>Get To Know</div>;
+const DataBoardPage = () => <div>Data Board</div>;
+const CanvasCreatorPage = () => <div>Canvas Creator</div>;
+const LovePage = () => <div>Love</div>;
+const RevenueDeskPage = () => <div>Revenue Desk</div>;
+const PromoBoostPage = () => <div>PromoBoost</div>;
+const SubscriptionCenterPage = () => <div>Subscription Center</div>;
+const FanFundDonationsPage = () => <div>Fan Fund & Donations</div>;
 
 export const AppRoutes: React.FC = () => {
   return (
@@ -75,6 +85,16 @@ export const AppRoutes: React.FC = () => {
 
         {/* KYC Route */}
         <Route path="/kyc" element={<KYCPage />} />
+
+        {/* New main menu items */}
+        <Route path="/get-to-know" element={<GetToKnow />} />
+        <Route path="/data-board" element={<DataBoardPage />} />
+        <Route path="/canvas-creator" element={<CanvasCreatorPage />} />
+        <Route path="/love" element={<LovePage />} />
+        <Route path="/revenue-desk" element={<RevenueDeskPage />} />
+        <Route path="/promoboost" element={<PromoBoostPage />} />
+        <Route path="/subscription-center" element={<SubscriptionCenterPage />} />
+        <Route path="/fan-fund-donations" element={<FanFundDonationsPage />} />
       </Route>
 
       {/* Catch all route */}

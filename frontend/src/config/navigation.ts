@@ -1,5 +1,64 @@
 export const menuHierarchy = [
     {
+        resource: 'Get To Know',
+        path: '/get-to-know',
+    },
+    {
+        resource: 'Data Board',
+        path: '/data-board',
+    },
+    {
+        resource: 'Canvas Creator',
+        path: '/canvas-creator',
+        children: [
+            { title: 'Pages', path: '/canvas-creator/pages', resource: 'Pages' },
+            { title: 'Storefront', path: '/canvas-creator/storefront', resource: 'Storefront' },
+        ],
+    },
+    {
+        resource: 'Love',
+        path: '/love',
+        children: [
+            { title: 'LearnLoop', path: '/love/learnloop', resource: 'LearnLoop' },
+            { title: 'VibeLab', path: '/love/vibelab', resource: 'VibeLab' },
+            { title: 'GlowCall', path: '/love/glowcall', resource: 'GlowCall' },
+            { title: 'IRL Meet', path: '/love/irl-meet', resource: 'IRL Meet' },
+            { title: 'TapIn', path: '/love/tapin', resource: 'TapIn' },
+        ],
+    },
+    {
+        resource: 'Revenue Desk',
+        path: '/revenue-desk',
+        children: [
+            { title: 'Earnings', path: '/revenue-desk/earnings', resource: 'Earnings' },
+            { title: 'Transactions', path: '/revenue-desk/transactions', resource: 'Transactions' },
+            { title: 'Subscriptions', path: '/revenue-desk/subscriptions', resource: 'Subscriptions' },
+            { title: 'Withdrawals', path: '/revenue-desk/withdrawals', resource: 'Withdrawals' },
+        ],
+    },
+    {
+        resource: 'PromoBoost',
+        path: '/promoboost',
+        children: [
+            { title: 'Lead Generation', path: '/promoboost/lead-generation', resource: 'Lead Generation' },
+            { title: 'Broadcasts', path: '/promoboost/broadcasts', resource: 'Broadcasts' },
+            { title: 'Coupons', path: '/promoboost/coupons', resource: 'Coupons' },
+            { title: 'Unsubscribed Users', path: '/promoboost/unsubscribed-users', resource: 'Unsubscribed Users' },
+        ],
+    },
+    {
+        resource: 'Subscription Center',
+        path: '/subscription-center',
+        children: [
+            { title: 'Tiers', path: '/subscription-center/tiers', resource: 'Tiers' },
+            { title: 'TaxDeck', path: '/subscription-center/taxdeck', resource: 'TaxDeck' },
+        ],
+    },
+    {
+        resource: 'Fan Fund & Donations',
+        path: '/fan-fund-donations',
+    },
+    {
         resource: 'Dashboard',
         path: '/dashboard',
     },

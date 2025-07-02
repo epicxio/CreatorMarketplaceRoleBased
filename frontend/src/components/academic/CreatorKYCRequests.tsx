@@ -67,6 +67,8 @@ const getDocIcon = (type: string) => {
   return <DescriptionIcon color="primary" />;
 };
 
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+
 const CreatorKYCRequests: React.FC = () => {
   const [requests, setRequests] = useState<any[]>([]);
   const [statuses, setStatuses] = useState<{ [id: string]: 'pending' | 'approved' | 'rejected' | 'verified' }>({});
@@ -94,7 +96,7 @@ const CreatorKYCRequests: React.FC = () => {
   // Fetch KYC requests from backend on mount and when statusFilter changes
   useEffect(() => {
     const token = localStorage.getItem('token');
-    let url = '/api/kyc/admin/documents';
+    let url = `${BACKEND_URL}/api/kyc/admin/documents`;
     let backendStatus = statusFilter;
     if (statusFilter === 'approved') backendStatus = 'verified';
     if (backendStatus) {
@@ -116,7 +118,7 @@ const CreatorKYCRequests: React.FC = () => {
           documentNumber: doc.documentNumber,
           status: doc.status,
           uploadedDate: doc.createdAt ? new Date(doc.createdAt).toLocaleDateString() : '-',
-          fileUrl: `/api/kyc/documents/${doc._id}/download`,
+          fileUrl: `${BACKEND_URL}/api/kyc/documents/${doc._id}/download`,
           comments: doc.verificationRemarks || '',
         }));
         setRequests(data);
@@ -138,7 +140,7 @@ const CreatorKYCRequests: React.FC = () => {
   useEffect(() => {
     if (modalOpen && selected) {
       const token = localStorage.getItem('token');
-      axios.get(`/api/kyc/documents/${selected.id}/draft-history`, {
+      axios.get(`${BACKEND_URL}/api/kyc/documents/${selected.id}/draft-history`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -191,7 +193,7 @@ const CreatorKYCRequests: React.FC = () => {
   const handlePreview = async (url: string) => {
     const token = localStorage.getItem('token');
     try {
-      const response = await axios.get(url, {
+      const response = await axios.get(url.startsWith('http') ? url : `${BACKEND_URL}${url}`, {
         responseType: 'blob',
         headers: {
           Authorization: `Bearer ${token}`
@@ -216,7 +218,7 @@ const CreatorKYCRequests: React.FC = () => {
     const token = localStorage.getItem('token');
     if (selected && draft.trim()) {
       await axios.post(
-        `/api/kyc/documents/${selected.id}/draft`,
+        `${BACKEND_URL}/api/kyc/documents/${selected.id}/draft`,
         { comment: draft },
         {
           headers: {
@@ -225,7 +227,7 @@ const CreatorKYCRequests: React.FC = () => {
         }
       );
       const res = await axios.get(
-        `/api/kyc/documents/${selected.id}/draft-history`,
+        `${BACKEND_URL}/api/kyc/documents/${selected.id}/draft-history`,
         {
           headers: {
             Authorization: `Bearer ${token}`
@@ -240,7 +242,7 @@ const CreatorKYCRequests: React.FC = () => {
     setStatusLoading(true);
     const token = localStorage.getItem('token');
     await axios.put(
-      `/api/kyc/admin/documents/${selected.id}/verify`,
+      `${BACKEND_URL}/api/kyc/admin/documents/${selected.id}/verify`,
       {
         status: 'verified',
         remarks: draft
@@ -269,7 +271,7 @@ const CreatorKYCRequests: React.FC = () => {
     setStatusLoading(true);
     const token = localStorage.getItem('token');
     await axios.put(
-      `/api/kyc/admin/documents/${selected.id}/verify`,
+      `${BACKEND_URL}/api/kyc/admin/documents/${selected.id}/verify`,
       {
         status: 'rejected',
         remarks: draft
@@ -319,7 +321,7 @@ const CreatorKYCRequests: React.FC = () => {
     setStatusLoading(true);
     const token = localStorage.getItem('token');
     await axios.put(
-      `/api/kyc/admin/documents/${selected.id}/verify`,
+      `${BACKEND_URL}/api/kyc/admin/documents/${selected.id}/verify`,
       {
         status: 'pending',
         remarks: draft
